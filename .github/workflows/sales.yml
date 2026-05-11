@@ -1,0 +1,64 @@
+name: フォローアップメール自動生成
+
+on:
+  push:
+    paths:
+      - "sales/inputs/followups/**.md"
+  workflow_dispatch:
+
+jobs:
+  generate-followup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: APIキーの確認
+        run: |
+          if [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "❌ ANTHROPIC_API_KEY が設定されていません"
+            echo "GitHub の Settings → Secrets → ANTHROPIC_API_KEY を登録してください"
+            exit 1
+          else
+            echo "✅ ANTHROPIC_API_KEY が確認できました"
+          fi
+
+      - name: 依存パッケージのインストール
+        working-directory: sales
+        run: npm ci
+
+      - name: フォローアップメールを生成
+        working-directory: sales
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npm run followup
+
+      - name: 生成物の確認
+        run: |
+          echo "## 生成されたファイル" >> $GITHUB_STEP_SUMMARY
+          if ls sales/outputs/followups/*.md 2>/dev/null | grep -q .; then
+            ls sales/outputs/followups/*.md | while read f; do
+              echo "- \`$(basename $f)\`" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "（生成ファイルなし）" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 生成物をコミット & プッシュ
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add sales/outputs/followups/
+          if git diff --cached --quiet; then
+            echo "変更なし。コミットをスキップします。"
+          else
+            git commit -m "chore(sales): auto-generate followup emails"
+            git push
+          fi

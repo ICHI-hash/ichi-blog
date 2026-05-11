@@ -1,0 +1,169 @@
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans CJK JP", "Meiryo", sans-serif;
+  font-size: 10pt;
+  line-height: 1.7;
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-align: center;
+  border-bottom: 3px solid #2563eb;
+  padding-bottom: 8pt;
+  margin-bottom: 6pt;
+}
+
+h2 {
+  font-size: 11pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  border-left: 4px solid #2563eb;
+  padding-left: 8pt;
+  margin-top: 18pt;
+  margin-bottom: 8pt;
+  page-break-after: avoid;
+}
+
+p {
+  margin: 4pt 0;
+}
+
+/* 発行情報（右寄せ） */
+.doc-meta {
+  text-align: right;
+  font-size: 9pt;
+  color: #4b5563;
+  margin-bottom: 12pt;
+  line-height: 1.8;
+}
+
+/* サマリーボックス */
+.summary-box {
+  border: 2px solid #2563eb;
+  border-radius: 4pt;
+  padding: 10pt 14pt;
+  margin: 12pt 0;
+  background: #f0f4ff;
+  line-height: 2;
+}
+
+.summary-box p {
+  margin: 2pt 0;
+}
+
+/* 合計金額強調 */
+.total-amount {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+/* 明細テーブル */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8pt 0;
+  font-size: 9.5pt;
+}
+
+th {
+  background: #1e3a5f;
+  color: #ffffff;
+  padding: 6pt 8pt;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #1e3a5f;
+}
+
+td {
+  padding: 5pt 8pt;
+  border: 1px solid #9ca3af;
+  vertical-align: middle;
+}
+
+/* ゼブラ */
+tbody tr:nth-child(even) td {
+  background: #f3f4f6;
+}
+
+/* 数値列は右寄せ */
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+td.center {
+  text-align: center;
+}
+
+/* 小計・合計エリア */
+.totals-table {
+  width: 40%;
+  margin-left: auto;
+  margin-top: 4pt;
+}
+
+.totals-table td {
+  padding: 4pt 8pt;
+  border: 1px solid #9ca3af;
+}
+
+.totals-table .label {
+  text-align: left;
+  color: #374151;
+}
+
+.totals-table .amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals-table .grand-total td {
+  background: #1e3a5f;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.totals-table .grand-total .amount {
+  color: #ffffff;
+  font-size: 1.2em;
+}
+
+/* 備考 */
+.notes {
+  border: 1px solid #d1d5db;
+  border-radius: 3pt;
+  padding: 8pt 12pt;
+  background: #fafafa;
+  font-size: 9.5pt;
+  line-height: 1.8;
+  margin-top: 4pt;
+}
+
+/* 発行元 */
+.issuer {
+  margin-top: 16pt;
+  padding-top: 10pt;
+  border-top: 1px solid #d1d5db;
+  font-size: 9pt;
+  color: #374151;
+  line-height: 1.8;
+}
+
+@media print {
+  body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  table { page-break-inside: avoid; }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "ichi-sales",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "proposal": "node proposals/generate.js",
+    "quote": "node quotes/generate.js",
+    "followup": "node followups/generate.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "md-to-pdf": "^5.2.4",
+    "dotenv": "^16.4.5",
+    "yaml": "^2.5.1"
+  }
+}

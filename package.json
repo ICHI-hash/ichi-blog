@@ -9,6 +9,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "dotenv": "^17.4.2",
     "zenn-cli": "^0.4.7"
   }
 }

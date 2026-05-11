@@ -1,0 +1,19 @@
+customer: 株式会社サンプル
+contact: 山田太郎 様
+project_title: 在庫管理 AI 化 PoC
+valid_until: 2026-06-30
+tax_rate: 0.10
+items:
+  - name: 要件定義・現状調査
+    unit: 人日
+    quantity: 5
+    unit_price: 80000
+  - name: AI エージェント開発（Claude Code）
+    unit: 人日
+    quantity: 15
+    unit_price: 80000
+  - name: 導入支援・運用引継ぎ
+    unit: 人日
+    quantity: 3
+    unit_price: 80000
+notes_hint: PoC 終了後の本格導入は別途見積もり。
