@@ -197,3 +197,5 @@ node engineering/scripts/pr-review.js --dry-run --diff-file /tmp/my.diff
 - 社外秘扱いの情報全般
 
 送信前に diff を目視確認し、機微情報が含まれる場合は該当箇所を除外するかレビューをスキップしてください。
+
+<!-- smoke test -->
