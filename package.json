@@ -1,4 +1,13 @@
 {
+  "name": "ichi-marketing",
+  "version": "1.0.0",
+  "description": "ICHI 広報・マーケティング自動化システム",
+  "scripts": {
+    "generate": "node scripts/generate_weekly_content.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "zenn-cli": "^0.4.7"
   }

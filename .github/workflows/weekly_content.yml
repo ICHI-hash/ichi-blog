@@ -1,0 +1,47 @@
+name: 週次コンテンツ自動生成
+
+on:
+  schedule:
+    - cron: "0 23 * * 0"
+  workflow_dispatch:
+    inputs:
+      theme:
+        description: "今週のテーマ（空白で自動決定）"
+        required: false
+        default: ""
+
+jobs:
+  generate-content:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 週次コンテンツを生成
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          THEME: ${{ github.event.inputs.theme }}
+        run: node scripts/generate_weekly_content.js
+
+      - name: ドラフトをコミット
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "ICHI Marketing Bot"
+          git add drafts/
+          DATE=$(date +%Y-%m-%d)
+          git commit -m "feat(marketing): 週次コンテンツ自動生成 ${DATE}" || echo "変更なし"
+          git push
+
+      - name: サマリー表示
+        run: |
+          echo "## ✅ 週次コンテンツ生成完了" >> $GITHUB_STEP_SUMMARY
+          ls drafts/*.md 2>/dev/null | while read f; do
+            echo "- \`$(basename $f)\`" >> $GITHUB_STEP_SUMMARY
+          done
