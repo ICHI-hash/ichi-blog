@@ -1,0 +1,7 @@
+# 実ログ・実案件データの誤コミット防止
+# *.example.md と .gitkeep は追跡対象に残す
+*.md
+!*.example.md
+!.gitkeep
+# gen:test が既存ファイル保護で生成する一時ファイル
+*.new

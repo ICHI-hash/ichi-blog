@@ -1,0 +1,12 @@
+{
+  "name": "ichi-engineering",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "new-project": "node scripts/new_project.js",
+    "gen:test": "node scripts/gen_test.js",
+    "gen:docs": "node scripts/gen_docs.js",
+    "triage": "node scripts/triage.js"
+  }
+}

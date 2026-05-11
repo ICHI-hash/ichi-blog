@@ -3,13 +3,19 @@
   "version": "1.0.0",
   "description": "ICHI 広報・マーケティング自動化システム",
   "scripts": {
-    "generate": "node scripts/generate_weekly_content.js"
+    "generate": "node scripts/generate_weekly_content.js",
+    "new-project": "node engineering/scripts/new-project.js",
+    "gen:test": "node engineering/scripts/gen-test.js",
+    "gen:docs": "node engineering/scripts/gen-docs.js",
+    "triage": "node engineering/scripts/triage.js",
+    "smoke:eng": "node engineering/scripts/_smoke.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
+    "@octokit/rest": "^22.0.1",
     "dotenv": "^17.4.2",
     "zenn-cli": "^0.4.7"
   }
