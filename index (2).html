@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="ひとりで、すべてを動かす。Claude Code × AIエージェントで事業を自動化する。一人が無限になる、その方法を発信するメディア。">
+<title>ICHI — ひとりで、すべてを動かす。</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Sans+JP:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset & Base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0c0c0a;
+  --bg2:       #141410;
+  --bg3:       #1c1c18;
+  --surface:   #242420;
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.14);
+  --fg:        #f0ede6;
+  --fg2:       #a8a49a;
+  --fg3:       #5c5a54;
+  --gold:      #e8e4dc;
+  --gold2:     #ffffff;
+  --gold-dim:  rgba(232,228,220,0.08);
+  --font-disp: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --max:       1200px;
+  --ease:      cubic-bezier(.22,1,.36,1);
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+
+/* ─── Grain Overlay ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: .5;
+}
+
+/* ─── Nav ─── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(24px, 5vw, 60px);
+  height: 64px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(12,12,10,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.nav-logo {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: .28em;
+  color: var(--fg);
+}
+.nav-links {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: .08em;
+  color: var(--fg2);
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--fg); }
+.nav-cta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  color: var(--fg2);
+  border: 1px solid var(--border2);
+  padding: 7px 18px;
+  border-radius: 2px;
+  transition: all .2s;
+}
+.nav-cta:hover {
+  color: var(--fg);
+  border-color: rgba(255,255,255,0.3);
+}
+.hamburger { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
+.hamburger span { display: block; width: 22px; height: 1px; background: var(--fg2); transition: all .3s; }
+
+/* ─── Hero ─── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 clamp(24px, 5vw, 60px) clamp(60px, 8vw, 100px);
+  position: relative;
+  overflow: hidden;
+}
+.hero-grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hero-grid-lines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 40%, transparent 100%);
+}
+.hero-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .2em;
+  color: var(--fg3);
+  margin-bottom: 28px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeUp .7s var(--ease) .2s forwards;
+}
+.hero-title {
+  font-family: var(--font-disp);
+  font-weight: 300;
+  font-size: clamp(54px, 9vw, 120px);
+  line-height: .95;
+  letter-spacing: -.02em;
+  color: var(--fg);
+  max-width: 900px;
+  margin-bottom: 32px;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeUp .8s var(--ease) .35s forwards;
+}
+.hero-title em {
+  font-style: italic;
+  color: var(--gold2);
+}
+.hero-rule {
+  width: 1px;
+  height: 48px;
+  background: var(--fg3);
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: fadeUp .6s var(--ease) .5s forwards;
+}
+.hero-desc {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--fg2);
+  max-width: 480px;
+  line-height: 1.9;
+  margin-bottom: 48px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeUp .7s var(--ease) .6s forwards;
+}
+.hero-actions {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  opacity: 0;
+  animation: fadeUp .6s var(--ease) .75s forwards;
+}
+.btn-primary {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  color: var(--bg);
+  background: var(--fg);
+  padding: 14px 32px;
+  border-radius: 2px;
+  transition: all .25s var(--ease);
+  display: inline-block;
+}
+.btn-primary:hover {
+  background: var(--fg2);
+  transform: translateY(-2px);
+}
+.btn-ghost {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .1em;
+  color: var(--fg2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: color .2s;
+}
+.btn-ghost:hover { color: var(--fg); }
+.btn-ghost::after {
+  content: '→';
+  transition: transform .2s var(--ease);
+}
+.btn-ghost:hover::after { transform: translateX(4px); }
+
+/* Hero stat bar */
+.hero-stats {
+  position: absolute;
+  right: clamp(24px, 5vw, 60px);
+  bottom: clamp(60px, 8vw, 100px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  opacity: 0;
+  animation: fadeIn .8s ease 1s forwards;
+}
+.stat-item {
+  text-align: right;
+  border-right: 1px solid var(--border2);
+  padding-right: 20px;
+}
+.stat-num {
+  font-family: var(--font-disp);
+  font-size: 36px;
+  font-weight: 300;
+  color: var(--fg);
+  line-height: 1;
+}
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  color: var(--fg3);
+  margin-top: 4px;
+}
+
+/* ─── Section base ─── */
+section {
+  padding: clamp(80px, 10vw, 140px) clamp(24px, 5vw, 60px);
+  position: relative;
+}
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .22em;
+  color: var(--fg2);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-label::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--fg3);
+}
+.section-title {
+  font-family: var(--font-disp);
+  font-weight: 300;
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  margin-bottom: 16px;
+}
+.section-title em { font-style: italic; color: var(--gold2); }
+
+/* ─── Ticker ─── */
+.ticker {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--bg2);
+}
+.ticker-inner {
+  display: inline-block;
+  animation: ticker 28s linear infinite;
+}
+.ticker-inner span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .15em;
+  color: var(--fg3);
+  margin-right: 60px;
+}
+.ticker-inner span.accent { color: var(--gold); }
+
+/* ─── Featured Post ─── */
+.featured {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+.featured-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+}
+.featured-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 52px;
+}
+.view-all {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--fg3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color .2s;
+}
+.view-all:hover { color: var(--gold); }
+.view-all::after { content: '→'; }
+
+.post-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  transition: border-color .25s;
+  cursor: pointer;
+}
+.post-hero:hover { border-color: var(--border2); }
+.post-hero-image {
+  aspect-ratio: 4/3;
+  background: var(--bg3);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.post-hero-image .abstract {
+  position: absolute;
+  inset: 0;
+}
+.post-hero-body {
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 1px solid var(--border);
+}
+.post-category {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  color: var(--fg2);
+  margin-bottom: 20px;
+}
+.post-title {
+  font-family: var(--font-disp);
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 300;
+  line-height: 1.2;
+  color: var(--fg);
+  margin-bottom: 20px;
+  flex: 1;
+}
+.post-excerpt {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--fg2);
+  line-height: 1.9;
+  margin-bottom: 32px;
+}
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--fg3);
+}
+.post-meta-divider { width: 1px; height: 12px; background: var(--border2); }
+.read-more {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  transition: gap .2s var(--ease);
+}
+.read-more:hover { gap: 14px; }
+.read-more::after { content: '→'; }
+
+/* Post grid */
+.post-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.post-card {
+  background: var(--bg2);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  transition: background .2s;
+  cursor: pointer;
+}
+.post-card:hover { background: var(--bg3); }
+.post-card-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg3);
+  margin-bottom: 20px;
+}
+.post-card-title {
+  font-family: var(--font-disp);
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1.3;
+  color: var(--fg);
+  margin-bottom: 16px;
+  flex: 1;
+}
+.post-card-excerpt {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--fg2);
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+.post-card-footer {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--fg3);
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+/* ─── About / Value ─── */
+.about {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.about-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 80px;
+  align-items: start;
+}
+.about-sticky { position: sticky; top: 100px; }
+.about-desc {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--fg2);
+  line-height: 2;
+  margin-top: 32px;
+  margin-bottom: 40px;
+}
+.value-list { list-style: none; display: flex; flex-direction: column; gap: 0; }
+.value-item {
+  border-top: 1px solid var(--border);
+  padding: 32px 0;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 32px;
+  align-items: start;
+  transition: background .2s;
+}
+.value-item:last-child { border-bottom: 1px solid var(--border); }
+.value-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--fg3);
+  padding-top: 4px;
+}
+.value-title {
+  font-family: var(--font-disp);
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+.value-body {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--fg2);
+  line-height: 1.9;
+}
+
+/* ─── Topics / Tags ─── */
+.topics {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+.topics-inner { max-width: var(--max); margin: 0 auto; }
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 40px;
+}
+.tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--fg2);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.tag:hover { border-color: var(--fg2); color: var(--fg); }
+.tag.featured { border-color: var(--border2); color: var(--fg); background: rgba(255,255,255,0.04); }
+
+/* ─── Newsletter ─── */
+.newsletter {
+  background: var(--bg3);
+  border-top: 1px solid var(--border);
+}
+.newsletter-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.newsletter-title {
+  font-family: var(--font-disp);
+  font-size: clamp(32px, 4vw, 54px);
+  font-weight: 300;
+  line-height: 1.15;
+  margin-top: 16px;
+}
+.newsletter-title em { font-style: italic; color: var(--gold2); }
+.newsletter-sub {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--fg2);
+  line-height: 1.9;
+  margin-top: 20px;
+}
+.newsletter-form { display: flex; flex-direction: column; gap: 12px; }
+.newsletter-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 16px 20px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--fg);
+  outline: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+.newsletter-input::placeholder { color: var(--fg3); }
+.newsletter-input:focus { border-color: rgba(201,168,76,0.5); }
+.newsletter-submit {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .14em;
+  color: var(--bg);
+  background: var(--fg);
+  border: none;
+  padding: 16px 32px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+}
+.newsletter-submit:hover { background: var(--fg2); }
+.newsletter-note {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--fg3);
+  margin-top: 4px;
+}
+
+/* ─── Footer ─── */
+footer {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 60px clamp(24px, 5vw, 60px) 40px;
+}
+.footer-inner {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 60px;
+  margin-bottom: 60px;
+}
+.footer-brand-name {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: .28em;
+  color: var(--fg);
+  margin-bottom: 16px;
+}
+.footer-tagline {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--fg3);
+  line-height: 1.9;
+}
+.footer-col-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  color: var(--fg3);
+  margin-bottom: 20px;
+}
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.footer-links a {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--fg2);
+  transition: color .2s;
+}
+.footer-links a:hover { color: var(--fg); }
+.footer-bottom {
+  max-width: var(--max);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 28px;
+}
+.footer-copy {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--fg3);
+}
+.footer-socials { display: flex; gap: 24px; }
+.footer-socials a {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  color: var(--fg3);
+  transition: color .2s;
+}
+.footer-socials a:hover { color: var(--fg); }
+
+/* ─── Animations ─── */
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+@keyframes ticker {
+  to { transform: translateX(-50%); }
+}
+@keyframes rotateIn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .7s var(--ease), transform .7s var(--ease);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: .1s; }
+.reveal-delay-2 { transition-delay: .2s; }
+.reveal-delay-3 { transition-delay: .3s; }
+
+/* ─── Abstract SVG art for hero post cards ─── */
+.abstract-1 { background: #111; }
+.abstract-2 { background: #0e0e0c; }
+.abstract-3 { background: #111108; }
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .post-hero { grid-template-columns: 1fr; }
+  .post-hero-image { aspect-ratio: 16/9; }
+  .post-hero-body { border-left: none; border-top: 1px solid var(--border); }
+  .post-grid { grid-template-columns: 1fr; }
+  .about-inner { grid-template-columns: 1fr; gap: 48px; }
+  .about-sticky { position: static; }
+  .newsletter-inner { grid-template-columns: 1fr; gap: 40px; }
+  .footer-inner { grid-template-columns: 1fr 1fr; gap: 40px; }
+  .hero-stats { display: none; }
+  .value-item { grid-template-columns: 80px 1fr; gap: 20px; }
+}
+@media (max-width: 600px) {
+  .nav-links, .nav-cta { display: none; }
+  .hamburger { display: flex; }
+  .footer-inner { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+  .hero-actions { flex-direction: column; align-items: flex-start; }
+}
+
+/* Mobile nav */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  inset: 64px 0 0;
+  background: rgba(12,12,10,0.97);
+  backdrop-filter: blur(20px);
+  z-index: 99;
+  padding: 40px 24px;
+  flex-direction: column;
+  gap: 28px;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav a {
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--fg2);
+  letter-spacing: .04em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Nav ─── -->
+<nav>
+  <a href="/" class="nav-logo">ICHI</a>
+  <ul class="nav-links">
+    <li><a href="#posts">記事</a></li>
+    <li><a href="#about">私たちについて</a></li>
+    <li><a href="#topics">トピック</a></li>
+    <li><a href="#contact">お問い合わせ</a></li>
+  </ul>
+  <a href="#newsletter" class="nav-cta">NEWSLETTER</a>
+  <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<div class="mobile-nav" id="mobileNav">
+  <a href="#posts" onclick="toggleMenu()">記事</a>
+  <a href="#about" onclick="toggleMenu()">私たちについて</a>
+  <a href="#topics" onclick="toggleMenu()">トピック</a>
+  <a href="#newsletter" onclick="toggleMenu()">ニュースレター</a>
+  <a href="#contact" onclick="toggleMenu()">お問い合わせ</a>
+</div>
+
+<!-- ─── Hero ─── -->
+<header class="hero">
+  <div class="hero-grid-lines"></div>
+  <div class="hero-tag">ONE PERSON × AI × INFINITE SCALE</div>
+  <h1 class="hero-title">
+    ひとりで、<br><em>すべてを</em><br>動かす。
+  </h1>
+  <div class="hero-rule"></div>
+  <p class="hero-desc">
+    Claude Code を核に据えたAIエージェントで、<br>
+    一人が五人分・十人分の仕事を動かす。<br>
+    その設計思想と実践を、ここから発信する。
+  </p>
+  <div class="hero-actions">
+    <a href="#posts" class="btn-primary">記事を読む</a>
+    <a href="#about" class="btn-ghost">私たちについて</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-num">一</div>
+      <div class="stat-label">ONE PERSON</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">∞</div>
+      <div class="stat-label">INFINITE SCALE</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">¥0</div>
+      <div class="stat-label">初期固定費</div>
+    </div>
+  </div>
+</header>
+
+<!-- ─── Ticker ─── -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-inner">
+    <span>ICHI</span>
+    <span class="accent">×</span>
+    <span>一人が無限になる</span>
+    <span class="accent">×</span>
+    <span>CLAUDE CODE</span>
+    <span class="accent">×</span>
+    <span>AI AUTOMATION</span>
+    <span class="accent">×</span>
+    <span>ONE PERSON</span>
+    <span class="accent">×</span>
+    <span>INFINITE SCALE</span>
+    <span class="accent">×</span>
+    <span>ICHI</span>
+    <span class="accent">×</span>
+    <span>一人が無限になる</span>
+    <span class="accent">×</span>
+    <span>CLAUDE CODE</span>
+    <span class="accent">×</span>
+    <span>AI AUTOMATION</span>
+    <span class="accent">×</span>
+    <span>ONE PERSON</span>
+    <span class="accent">×</span>
+    <span>INFINITE SCALE</span>
+    <span class="accent">×</span>
+  </div>
+</div>
+
+<!-- ─── Featured Posts ─── -->
+<section class="featured" id="posts">
+  <div class="featured-inner">
+    <div class="featured-header reveal">
+      <div>
+        <div class="section-label">LATEST</div>
+        <h2 class="section-title">最新<em>記事</em></h2>
+      </div>
+      <a href="#" class="view-all">すべて見る</a>
+    </div>
+
+    <!-- Hero Post -->
+    <article class="post-hero reveal">
+      <div class="post-hero-image abstract-1">
+        <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <radialGradient id="g1" cx="30%" cy="40%">
+              <stop offset="0%" stop-color="#e8e4dc" stop-opacity=".18"/>
+              <stop offset="100%" stop-color="#e8e4dc" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="400" height="300" fill="#0d0d0b"/>
+          <circle cx="120" cy="120" r="180" fill="url(#g1)"/>
+          <line x1="0" y1="60" x2="400" y2="60" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".12"/>
+          <line x1="0" y1="150" x2="400" y2="150" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".08"/>
+          <line x1="0" y1="240" x2="400" y2="240" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".06"/>
+          <line x1="80" y1="0" x2="80" y2="300" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".08"/>
+          <line x1="200" y1="0" x2="200" y2="300" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".12"/>
+          <line x1="320" y1="0" x2="320" y2="300" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".06"/>
+          <circle cx="200" cy="150" r="60" fill="none" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".2"/>
+          <circle cx="200" cy="150" r="100" fill="none" stroke="#e8e4dc" stroke-width=".5" stroke-opacity=".1"/>
+          <text x="36" y="74" text-anchor="start" font-family="monospace" font-size="64" font-weight="300" fill="#e8e4dc" fill-opacity=".06">一</text>
+        </svg>
+      </div>
+      <div class="post-hero-body">
+        <div>
+          <div class="post-category">FEATURED — AI STRATEGY</div>
+          <h3 class="post-title">ひとりで五部門を回す——初期費用ゼロ、Claude Codeだけで動くAIファースト事業の全設計</h3>
+          <p class="post-excerpt">技術・広報・企画・営業・経理。本来なら5人以上のチームが必要な組織を、Claude Codeによる自動化ループと月数万円のコストで実現する方法を全公開します。「ICHI」という名の通り、一人が無限になるための設計思想。</p>
+        </div>
+        <div>
+          <div class="post-meta">
+            <span>2025.06.01</span>
+            <div class="post-meta-divider"></div>
+            <span>AGENTIC編集部</span>
+            <div class="post-meta-divider"></div>
+            <span>12 MIN READ</span>
+          </div>
+          <a href="#" class="read-more">続きを読む</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- Post Grid -->
+    <div class="post-grid">
+      <article class="post-card reveal reveal-delay-1">
+        <div class="post-card-num">01 — CLAUDE CODE</div>
+        <h3 class="post-card-title">受託開発の原価を90%削減する——Claude Code実践ワークフロー</h3>
+        <p class="post-card-excerpt">要件定義書を渡すだけでMVPが2日で完成。実際の受託案件で使ったプロンプトと手順を公開します。</p>
+        <div class="post-card-footer">
+          <span>2025.05.24</span>
+          <span>8 MIN</span>
+        </div>
+      </article>
+      <article class="post-card reveal reveal-delay-2">
+        <div class="post-card-num">02 — MARKETING</div>
+        <h3 class="post-card-title">週次コンテンツを自動生成——Claudeで回すマーケループの全設計</h3>
+        <p class="post-card-excerpt">月曜にテーマを決めれば、Zenn・X・ブログの下書きが火曜に揃う。週15分の運用に落とし込んだ実例。</p>
+        <div class="post-card-footer">
+          <span>2025.05.17</span>
+          <span>6 MIN</span>
+        </div>
+      </article>
+      <article class="post-card reveal reveal-delay-3">
+        <div class="post-card-num">03 — SaaS</div>
+        <h3 class="post-card-title">フットサル個サル管理アプリを3日で作った——設計思想と技術選定</h3>
+        <p class="post-card-excerpt">Google OAuth + Sheets連携。参加者管理・キャンセル待ち・CSV出力まで実装。コードとプロンプト全公開。</p>
+        <div class="post-card-footer">
+          <span>2025.05.10</span>
+          <span>10 MIN</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ─── About ─── -->
+<section class="about" id="about">
+  <div class="about-inner">
+    <div class="about-sticky reveal">
+      <div class="section-label">ABOUT</div>
+      <h2 class="section-title">なぜ、<em>一</em>なのか。</h2>
+      <p class="about-desc">
+        一人でも、AIがあれば無限になれる。<br>
+        ICHIはその仮説を、実際のビジネスで証明しながら<br>
+        設計思想ごと発信するメディアだ。
+      </p>
+      <a href="#posts" class="btn-primary" style="display:inline-block">事例を読む</a>
+    </div>
+
+    <ul class="value-list">
+      <li class="value-item reveal">
+        <div class="value-num">01<br>COST</div>
+        <div>
+          <h3 class="value-title">初期費用を限りなくゼロに</h3>
+          <p class="value-body">ドメインとAPIクレジットさえあれば始められる。人件費は判断コストだけ。Claude Codeが5人分の工数を肩代わりし、受託1案件の原価率を1〜4%まで圧縮できる。</p>
+        </div>
+      </li>
+      <li class="value-item reveal reveal-delay-1">
+        <div class="value-num">02<br>SPEED</div>
+        <div>
+          <h3 class="value-title">MVPを1週間で納品する</h3>
+          <p class="value-body">要件定義から実装・テスト・ドキュメント作成まで、Claude Codeが一貫して担う。従来の開発会社と比較して5〜10倍の速度でフィードバックサイクルを回せる。</p>
+        </div>
+      </li>
+      <li class="value-item reveal reveal-delay-2">
+        <div class="value-num">03<br>LEARN</div>
+        <div>
+          <h3 class="value-title">案件ごとに資産が積み上がる</h3>
+          <p class="value-body">受託で構築したプロンプト・テンプレート・自動化フローは次の案件の原価を下げ続ける。知識の複利がビジネスのモートになる。</p>
+        </div>
+      </li>
+      <li class="value-item reveal reveal-delay-3">
+        <div class="value-num">04<br>NICHE</div>
+        <div>
+          <h3 class="value-title">垂直特化で模倣困難な壁を作る</h3>
+          <p class="value-body">汎用AIツールが普及しても、特定業界の業務知識と自動化設計を組み合わせたノウハウは容易に模倣できない。スポーツ施設・士業・クリニックなど特定領域に深く潜る。</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ─── Topics ─── -->
+<section class="topics" id="topics">
+  <div class="topics-inner">
+    <div class="reveal">
+      <div class="section-label">TOPICS</div>
+      <h2 class="section-title">カバーする<em>領域</em></h2>
+    </div>
+    <div class="tag-cloud reveal reveal-delay-1">
+      <span class="tag featured">Claude Code</span>
+      <span class="tag featured">AI自動化</span>
+      <span class="tag featured">受託開発</span>
+      <span class="tag">SaaS設計</span>
+      <span class="tag">プロンプトエンジニアリング</span>
+      <span class="tag">中小企業DX</span>
+      <span class="tag">eFootball</span>
+      <span class="tag">eスポーツ</span>
+      <span class="tag">フットサル</span>
+      <span class="tag">Google Apps Script</span>
+      <span class="tag">AIエージェント</span>
+      <span class="tag">バックオフィス自動化</span>
+      <span class="tag">収益化戦略</span>
+      <span class="tag">個人開発</span>
+      <span class="tag">起業ログ</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Newsletter ─── -->
+<section class="newsletter" id="newsletter">
+  <div class="newsletter-inner">
+    <div class="reveal">
+      <div class="section-label">NEWSLETTER</div>
+      <h2 class="newsletter-title">一人分の力を、<br><em>無限に</em><br>広げる知識を。</h2>
+      <p class="newsletter-sub">週1回、Claude Codeの実践ノウハウ・自動化事例・一人経営の戦略をまとめてお届けします。広告なし、読む価値だけ。</p>
+    </div>
+    <div class="reveal reveal-delay-1">
+      <div class="newsletter-form">
+        <input type="email" class="newsletter-input" placeholder="your@email.com">
+        <input type="text" class="newsletter-input" placeholder="お名前（任意）">
+        <button class="newsletter-submit" onclick="handleSubscribe()">SUBSCRIBE — 無料で登録</button>
+        <p class="newsletter-note">配信解除はいつでも可能。スパムは送りません。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ─── -->
+<footer id="contact">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand-name">ICHI</div>
+      <p class="footer-tagline">ひとりで、すべてを動かす。<br>Claude Code × AIエージェントで<br>一人が無限になる方法を<br>実践しながら発信するメディア。</p>
+    </div>
+    <div>
+      <div class="footer-col-title">ARTICLES</div>
+      <ul class="footer-links">
+        <li><a href="#">Claude Code入門</a></li>
+        <li><a href="#">AI受託開発</a></li>
+        <li><a href="#">SaaS設計</a></li>
+        <li><a href="#">自動化事例</a></li>
+        <li><a href="#">起業ログ</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">SERVICES</div>
+      <ul class="footer-links">
+        <li><a href="#">AI受託開発</a></li>
+        <li><a href="#">AIエージェント運用代行</a></li>
+        <li><a href="#">業務自動化コンサル</a></li>
+        <li><a href="#">SaaS開発</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">CONTACT</div>
+      <ul class="footer-links">
+        <li><a href="#">お問い合わせ</a></li>
+        <li><a href="#">取材・コラボ依頼</a></li>
+        <li><a href="#">X (Twitter)</a></li>
+        <li><a href="#">Zenn</a></li>
+        <li><a href="#">GitHub</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 ICHI. ALL RIGHTS RESERVED.</div>
+    <div class="footer-socials">
+      <a href="#">X</a>
+      <a href="#">ZENN</a>
+      <a href="#">GITHUB</a>
+      <a href="#">NOTE</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── Scroll Reveal ── */
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+/* ── Mobile Menu ── */
+function toggleMenu() {
+  document.getElementById('mobileNav').classList.toggle('open');
+}
+
+/* ── Subscribe ── */
+function handleSubscribe() {
+  const email = document.querySelector('.newsletter-input').value;
+  if (!email || !email.includes('@')) {
+    alert('メールアドレスを正しく入力してください。');
+    return;
+  }
+  alert('ご登録ありがとうございます！次回配信をお楽しみに。');
+}
+
+/* ── Smooth nav active ── */
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav');
+  if (window.scrollY > 40) {
+    nav.style.borderBottomColor = 'rgba(255,255,255,0.12)';
+  } else {
+    nav.style.borderBottomColor = 'rgba(255,255,255,0.08)';
+  }
+});
+</script>
+</body>
+</html>
