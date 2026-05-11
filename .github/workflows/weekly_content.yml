@@ -22,7 +22,17 @@ jobs:
       - name: Node.js セットアップ
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
+
+      - name: APIキーの確認
+        run: |
+          if [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "❌ ANTHROPIC_API_KEY が設定されていません"
+            echo "GitHub の Settings → Secrets → ANTHROPIC_API_KEY を登録してください"
+            exit 1
+          else
+            echo "✅ ANTHROPIC_API_KEY が確認できました"
+          fi
 
       - name: 週次コンテンツを生成
         env:
