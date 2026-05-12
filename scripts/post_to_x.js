@@ -82,5 +82,8 @@ async function main() {
 
 main().catch(err => {
   console.error("❌ エラー:", err.message);
+  if (err.data)   console.error("APIレスポンス:", JSON.stringify(err.data, null, 2));
+  if (err.code)   console.error("コード:", err.code);
+  if (err.errors) console.error("詳細:", JSON.stringify(err.errors, null, 2));
   process.exit(1);
 });
