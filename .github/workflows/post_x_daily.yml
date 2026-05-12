@@ -23,6 +23,18 @@ jobs:
       - name: 依存パッケージをインストール
         run: npm ci
 
+      - name: 認証情報の確認（デバッグ）
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+        run: |
+          echo "X_API_KEY      先頭4文字: ${X_API_KEY:0:4}*** 長さ: ${#X_API_KEY}"
+          echo "X_API_SECRET   先頭4文字: ${X_API_SECRET:0:4}*** 長さ: ${#X_API_SECRET}"
+          echo "X_ACCESS_TOKEN 先頭4文字: ${X_ACCESS_TOKEN:0:4}*** 長さ: ${#X_ACCESS_TOKEN}"
+          echo "X_ACCESS_TOKEN_SECRET 先頭4文字: ${X_ACCESS_TOKEN_SECRET:0:4}*** 長さ: ${#X_ACCESS_TOKEN_SECRET}"
+
       - name: X に投稿
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
