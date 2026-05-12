@@ -8,15 +8,24 @@
     "gen:test": "node engineering/scripts/gen-test.js",
     "gen:docs": "node engineering/scripts/gen-docs.js",
     "triage": "node engineering/scripts/triage.js",
-    "smoke:eng": "node engineering/scripts/_smoke.js"
+    "smoke:eng": "node engineering/scripts/_smoke.js",
+    "gen:requirements": "node planning/scripts/gen-requirements.js",
+    "estimate": "node planning/scripts/estimate.js",
+    "research": "node planning/scripts/research.js",
+    "roadmap": "node planning/scripts/roadmap.js",
+    "dashboard": "node planning/scripts/dashboard.js",
+    "weekly-report": "node planning/scripts/weekly-report.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
+    "@notionhq/client": "^5.21.0",
     "@octokit/rest": "^22.0.1",
     "dotenv": "^17.4.2",
+    "googleapis": "^171.4.0",
+    "gray-matter": "^4.0.3",
     "zenn-cli": "^0.4.7"
   }
 }

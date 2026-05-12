@@ -1,3 +1,8 @@
 node_modules
 .DS_Store
 .env
+
+# planning department
+planning/outputs/
+planning/inputs/*.md
+!planning/inputs/*.example.md
