@@ -5,10 +5,10 @@
 ## 生成ファイル
 - X投稿5本: drafts/2026-05-12_x_posts.md
 - Zenn記事（全文・自動公開済み）: articles/ichi-github-actions-20260512.md
-  タイトル: GitHub Actionsで実現する完全自動化CI/CDパイプライン構築ガイド
+  タイトル: GitHub Actionsで始めるCI/CD自動化完全ガイド
 - Zennアウトライン（確認用）: drafts/2026-05-12_zenn_outline.md
 - note記事（全文）: drafts/2026-05-12_note_article.md
-  タイトル: GitHub Actionsで実現する開発自動化——エンジニアチームの生産性を3倍にする実践ガイド
+  タイトル: GitHub Actionsで実現する開発自動化——手作業ゼロで生産性を10倍にする実践ガイド
 
 ## 今週のアクション
 - [ ] X投稿: GitHub Actionsが月〜金に1本ずつ自動投稿

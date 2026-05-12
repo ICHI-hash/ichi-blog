@@ -1,29 +1,22 @@
 ---
-title: "GitHub Actionsで実現する完全自動化CI/CDパイプライン構築ガイド"
+title: "GitHub Actionsで始めるCI/CD自動化完全ガイド"
 emoji: "⚙️"
 type: "tech"
 topics: ["githubactions","cicd","devops"]
 published: true
 ---
 
-CI/CDの自動化は、現代のソフトウェア開発において欠かせない要素になっています。私がGitHub Actionsを本格的に導入してから、リリース作業にかかる時間が劇的に短縮され、ヒューマンエラーも激減しました。この記事では、実際の現場で使えるCI/CDパイプラインの構築方法を、具体的なコードとともに解説します。
+GitHub Actionsを使い始めてから、私のデプロイ作業は劇的に変わりました。毎回手動でビルドして、テストして、サーバーにアップロードして……という繰り返し作業がほぼゼロになり、コードを書くことに集中できるようになったのです。この記事では、GitHub Actionsでいちから自動化パイプラインを構築する方法を、実際のコードを交えて丁寧に解説します。
 
-## GitHub Actionsの基本的な仕組みを理解する
+## GitHub Actionsの基本構造を理解する
 
-GitHub Actionsは、リポジトリ内の`.github/workflows/`ディレクトリにYAMLファイルを配置することで動作します。ワークフローは**イベント**（pushやpull_requestなど）をトリガーとして起動し、**ジョブ**と呼ばれる処理単位を**ステップ**として順番に実行していきます。
+GitHub Actionsのワークフローは、リポジトリの `.github/workflows/` ディレクトリに置いた **YAMLファイル** で定義します。構成要素は大きく3つです。
 
-重要な概念を整理すると次のとおりです。
+- **Workflow（ワークフロー）**: 自動化処理全体の定義ファイル
+- **Job（ジョブ）**: ワークフロー内の実行単位。並列・直列で実行可能
+- **Step（ステップ）**: ジョブ内の個々のコマンドやアクション
 
-- **Workflow**：自動化処理全体の定義
-- **Job**：並列または直列で実行される処理グループ
-- **Step**：Jobの中で順番に実行される個々のコマンドやAction
-- **Runner**：Jobを実行する仮想マシン（ubuntu-latestなど）
-
-この仕組みを理解していると、複雑なパイプラインを設計するときにも迷いにくくなります。
-
-## 実践的なCI設定ファイルを作る
-
-まずはNode.jsプロジェクトを例に、プルリクエスト時に自動でテストとリントが走る基本的なCIを構築してみましょう。
+トリガーには `push`、`pull_request`、`schedule`（cron）、`workflow_dispatch`（手動実行）など多彩な種類があります。まずはシンプルな構成を見てみましょう。
 
 ```yaml
 # .github/workflows/ci.yml
@@ -31,152 +24,163 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
 
-      - name: Node.js ${{ matrix.node-version }} のセットアップ
+      - name: Node.js をセットアップ
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '20'
           cache: 'npm'
 
-      - name: 依存関係のインストール
+      - name: 依存関係をインストール
         run: npm ci
 
-      - name: リントチェック
-        run: npm run lint
+      - name: テストを実行
+        run: npm test
 
-      - name: テスト実行
-        run: npm test -- --coverage
-
-      - name: カバレッジレポートのアップロード
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: ビルドを実行
+        run: npm run build
 ```
 
-このワークフローのポイントは`matrix`戦略を使っている点です。Node.js 18と20の両方でテストを並列実行することで、バージョン互換性の問題を早期に発見できます。また`npm ci`を使うことで`package-lock.json`に基づいた厳密な依存関係のインストールが保証されます。
+このワークフローは `main` または `develop` ブランチへのプッシュ、あるいは `main` へのプルリクエスト時に自動で起動します。`actions/checkout@v4` や `actions/setup-node@v4` のように、GitHubが公式に提供している **アクション** を `uses` キーで呼び出せるのが便利なところです。
 
-### キャッシュを活用してビルド時間を短縮する
+## 実践：テスト・ビルド・デプロイを一本化する
 
-`actions/setup-node`の`cache: 'npm'`オプションを指定するだけで、`node_modules`のキャッシュが自動的に有効になります。私の経験では、これだけで依存関係インストールの時間が平均60〜70秒から10秒程度に短縮されました。
+CI（継続的インテグレーション）だけでなく、CD（継続的デリバリー/デプロイ）まで含めた本格的なパイプラインを組んでみましょう。ここでは Node.js アプリケーションを例に、テスト → ビルド → Vercelへのデプロイ という流れを自動化します。
 
-## 本番デプロイまで自動化するCDパイプライン
-
-CIが通ったら、次はデプロイまで自動化しましょう。ここではAWS S3とCloudFrontへの静的サイトデプロイを例に、mainブランチへのマージ時に自動デプロイが走る設定を紹介します。
+ポイントは **Jobの依存関係** です。`needs` キーを使うことで「テストが通ったらビルド、ビルドが成功したらデプロイ」という直列フローを表現できます。
 
 ```yaml
-# .github/workflows/cd.yml
-name: CD Pipeline
+# .github/workflows/deploy.yml
+name: Deploy Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - name: ビルド成果物をアップロード
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: ./dist
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment: production
-    
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v4
-
-      - name: Node.jsのセットアップ
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - name: ビルド成果物をダウンロード
+        uses: actions/download-artifact@v4
         with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: 依存関係のインストール
-        run: npm ci
-
-      - name: プロダクションビルド
-        run: npm run build
-        env:
-          NODE_ENV: production
-          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL }}
-
-      - name: AWS認証（OIDC）
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ap-northeast-1
-
-      - name: S3へデプロイ
-        run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} \
-            --delete \
-            --cache-control "max-age=31536000,immutable" \
-            --exclude "*.html"
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} \
-            --delete \
-            --cache-control "no-cache" \
-            --include "*.html"
-
-      - name: CloudFrontキャッシュの無効化
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
+          name: build-output
+          path: ./dist
+      - name: Vercel にデプロイ
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
 ```
 
-注目してほしいのは**OIDC認証**を使っている点です。従来のようにAWSのアクセスキーをSecretに保存する方式と異なり、OIDCを使うとGitHub ActionsがAWSに対して一時的なトークンで認証できます。長期間有効なクレデンシャルをリポジトリに持たせなくて済むため、セキュリティが大幅に向上します。
+`${{ secrets.VERCEL_TOKEN }}` のように、機密情報は必ず **GitHub Secrets** に登録して参照します。リポジトリの「Settings > Secrets and variables > Actions」から設定できます。絶対にYAMLに直書きしないよう気をつけてください。
 
-また、HTMLファイルとそれ以外でキャッシュ設定を分けている点も実務では重要です。ハッシュ付きのJSやCSSは長期キャッシュ、HTMLは毎回取得させることで、デプロイ後にユーザーが古いキャッシュを参照し続ける問題を防げます。
+### Artifactを使ったジョブ間のファイル受け渡し
 
-## 品質を担保するための追加ベストプラクティス
+各ジョブは独立した実行環境（コンテナ）で動くため、ファイルをそのまま渡すことはできません。`upload-artifact` でビルド成果物を一時保存し、後続ジョブで `download-artifact` して受け取る、というパターンが基本です。
 
-### ブランチ保護ルールとの組み合わせ
+## 効率化に役立つ実践テクニック
 
-ワークフローだけ設定しても、CIが通っていないコードをマージできてしまっては意味がありません。GitHubの**Branch protection rules**でCIの成功をマージの必須条件に設定しましょう。
+### キャッシュで実行時間を短縮する
 
-設定場所は`Settings > Branches > Branch protection rules`です。`Require status checks to pass before merging`を有効にして、必須にしたいJobを指定します。
+依存関係のインストールは毎回時間がかかります。`actions/setup-node` の `cache: 'npm'` オプションを使うと、`node_modules` を自動でキャッシュしてくれるため、2回目以降の実行が大幅に速くなります。Pythonなら `cache: 'pip'`、Rubyなら `cache: 'bundler'` が使えます。
 
-### Secretsの管理戦略
+### マトリックス戦略で複数環境を同時テスト
 
-環境変数やAPIキーの管理はパイプラインのセキュリティを左右する重要な要素です。私が実践しているルールを紹介します。
+複数のNode.jsバージョンやOSでテストしたい場合は、`strategy.matrix` が便利です。
 
-- **Repository Secrets**：全ブランチで共通の値（サードパーティAPIキーなど）
-- **Environment Secrets**：`production`や`staging`など環境ごとに異なる値
-- **Variables**：センシティブでない設定値（リージョン名など）
+```yaml
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm test
+```
 
-環境（Environment）を使うと、特定のブランチからのみデプロイを許可する制限や、デプロイ前に承認者のレビューを必須にする**Required reviewers**機能も使えます。本番環境へのデプロイに人間の目を介在させたい場合に重宝します。
+このように書くだけで、3 OS × 3バージョン = **9通りの環境** で並列テストが走ります。OSS開発や、複数環境のサポートが必要なライブラリ開発では特に重宝します。
 
-### ワークフローの実行時間を最適化する
+### 条件付き実行でムダなジョブを省く
 
-パイプラインが遅くなると開発者のフィードバックループが長くなり、生産性に直結します。意識しておきたい最適化のポイントを挙げます。
+`if` 条件を使うと、特定の状況でのみジョブやステップを実行できます。例えば `if: github.ref == 'refs/heads/main'` と書けば、mainブランチへのプッシュ時だけデプロイが走るようになります。テストはすべてのブランチで走らせつつ、デプロイはmainのみ、というよく使われるパターンも簡単に実現できます。
 
-- **並列実行**：独立したJobはデフォルトで並列実行される。依存関係は`needs`で明示する
-- **早期終了**：`fail-fast: true`（matrixのデフォルト）で1つ失敗したら他を止める
-- **条件実行**：`if`条件でデプロイJobをmainブランチのpushに限定する
-- **キャッシュ**：npm/pip/Dockerレイヤーなどビルドごとに変わらないものは積極的にキャッシュする
+## セキュリティとベストプラクティス
+
+GitHub Actionsを本番運用するにあたって、私が特に意識しているポイントをまとめます。
+
+**アクションのバージョンは必ずピン留めする**  
+`uses: actions/checkout@v4` のようにメジャーバージョンを指定するのが最低限ですが、セキュリティを重視するなら `actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683` のようにコミットSHAで固定する方が安全です。サプライチェーン攻撃への対策になります。
+
+**最小権限の原則を守る**  
+ワークフローに付与するトークンの権限は必要最小限にしましょう。`permissions` キーでリポジトリへの書き込み権限を制限できます。
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+```
+
+**Dependabotでアクションを自動更新する**  
+`.github/dependabot.yml` に `package-ecosystem: github-actions` を追加すると、利用しているアクションのバージョン更新をDependabotが自動でPRを作成して提案してくれます。メンテナンスコストを大きく削減できる設定です。
 
 ## まとめ
 
-GitHub Actionsを使ったCI/CDパイプラインの構築について、基本的な仕組みから実践的な設定まで解説しました。要点を振り返ります。
+GitHub Actionsは、YAMLを書くだけで強力なCI/CDパイプラインを構築できる、非常に実用的なツールです。この記事でお伝えしたポイントを振り返ります。
 
-- **CI**はpush・PR時にテストとリントを自動実行し、問題を早期発見する
-- **CD**はmainブランチへのマージをトリガーに本番デプロイまで自動化する
-- **OIDC認証**で長期クレデンシャルを持たずにセキュアなAWS連携を実現する
-- **ブランチ保護**とセットで運用することで品質ゲートとして機能させる
-- **キャッシュ活用**と**並列実行**でパイプラインの実行時間を最小化する
+- **基本構造**：Workflow → Job → Stepの階層でパイプラインを定義する
+- **実践構成**：`needs` でJob間の依存を管理し、テスト・ビルド・デプロイを直列化する
+- **効率化**：キャッシュとマトリックス戦略で高速化・並列化を実現する
+- **セキュリティ**：Secrets活用・アクションのバージョン固定・最小権限設定を徹底する
 
-最初から完璧なパイプラインを目指す必要はありません。まずは基本的なテスト自動化から始めて、チームの開発スタイルに合わせて少しずつ拡充していくアプローチがおすすめです。自動化の恩恵を実感できると、次第に「ここも自動化したい」というアイデアが自然と湧いてくるはずです。ぜひ自分のプロジェクトに取り入れてみてください。
+最初は「YAMLの書き方が難しそう」と感じる方も多いと思いますが、公式ドキュメントやGitHub Marketplaceには豊富なサンプルがあります。まずはシンプルなテスト自動化から始めて、少しずつデプロイまで拡張していくのがおすすめです。自動化によって生まれた時間を、ぜひプロダクトの改善に使ってみてください。
