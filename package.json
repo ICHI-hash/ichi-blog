@@ -4,6 +4,7 @@
   "description": "ICHI 広報・マーケティング自動化システム",
   "scripts": {
     "generate": "node scripts/generate_weekly_content.js",
+    "post-x": "node scripts/post_to_x.js",
     "new-project": "node engineering/scripts/new-project.js",
     "gen:test": "node engineering/scripts/gen-test.js",
     "gen:docs": "node engineering/scripts/gen-docs.js",
@@ -14,7 +15,9 @@
     "research": "node planning/scripts/research.js",
     "roadmap": "node planning/scripts/roadmap.js",
     "dashboard": "node planning/scripts/dashboard.js",
-    "weekly-report": "node planning/scripts/weekly-report.js"
+    "weekly-report": "node planning/scripts/weekly-report.js",
+    "invoice": "node accounting/scripts/invoice.js",
+    "categorize": "node accounting/scripts/categorize.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -23,9 +26,14 @@
     "@anthropic-ai/sdk": "^0.95.1",
     "@notionhq/client": "^5.21.0",
     "@octokit/rest": "^22.0.1",
+    "csv-parse": "^6.2.1",
+    "csv-stringify": "^6.7.0",
     "dotenv": "^17.4.2",
     "googleapis": "^171.4.0",
     "gray-matter": "^4.0.3",
+    "iconv-lite": "^0.7.2",
+    "md-to-pdf": "^5.2.5",
+    "twitter-api-v2": "^1.18.2",
     "zenn-cli": "^0.4.7"
   }
 }

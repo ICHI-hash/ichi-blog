@@ -44,7 +44,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "ICHI Marketing Bot"
-          git add drafts/
+          git add drafts/ articles/
           DATE=$(date +%Y-%m-%d)
           git commit -m "feat(marketing): 週次コンテンツ自動生成 ${DATE}" || echo "変更なし"
           git push

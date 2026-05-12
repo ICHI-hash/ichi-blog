@@ -23,6 +23,17 @@ const CONFIG = {
   ],
 };
 
+const TOPIC_SLUGS = {
+  "Claude Code実践ノウハウ":     "claude-code-tips",
+  "AIエージェント業務自動化":     "ai-agent-automation",
+  "受託開発・SaaS設計":           "saas-design",
+  "一人経営・スモールビジネス戦略": "solo-business",
+  "GitHub Actions自動化":         "github-actions",
+  "プロンプトエンジニアリング":   "prompt-engineering",
+  "フットサル・スポーツDX":       "sports-dx",
+  "eFootball eスポーツ":          "efootball-esports",
+};
+
 function getWeekTheme() {
   const weekNum = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
   return CONFIG.topics[weekNum % CONFIG.topics.length];
@@ -78,6 +89,35 @@ async function generateNoteOutline(theme) {
   return JSON.parse(raw);
 }
 
+async function generateZennFullArticle(theme, title) {
+  const system = `あなたはICHIブランドの技術ライターです。Zenn向け記事の本文のみをMarkdownで出力してください。フロントマター・冒頭タイトル行は含めないこと。`;
+  const prompt = `タイトル「${title}」、テーマ「${theme}」でZenn技術記事を完全に執筆してください。
+
+条件:
+- 2000〜3000字（日本語）
+- ## 見出しを3〜5個、必要に応じて ### サブ見出しも使用
+- 実用的なコードブロックを2〜3個含める
+- 一人称（私）、親しみやすいが技術的に正確なトーン
+- 最後に「## まとめ」セクションを含める
+- フロントマター・タイトル行は含めない（本文のみ）`;
+  return await callClaude(system, prompt);
+}
+
+async function generateNoteFull(theme, title) {
+  const system = `あなたはICHIブランドのビジネスライターです。note向けビジネス記事の本文のみを出力してください。`;
+  const prompt = `タイトル「${title}」、テーマ「${theme}」でnoteビジネス記事を完全に執筆してください。
+
+条件:
+- 1500〜2500字（日本語）
+- ビジネス視点・個人事業主・フリーランス向け
+- ## 見出しを3〜4個使用
+- 一人称（私）、読みやすく共感を呼ぶトーン
+- コードブロックは不要、具体的なエピソードや数字を使う
+- 最後に「## まとめ」セクションを含める
+- タイトル行（# タイトル）は含めない（本文のみ）`;
+  return await callClaude(system, prompt);
+}
+
 function saveDraft(filename, content) {
   const draftsDir = path.join(__dirname, "..", "drafts");
   if (!fs.existsSync(draftsDir)) fs.mkdirSync(draftsDir, { recursive: true });
@@ -96,7 +136,7 @@ async function main() {
   console.log(`📌 今週のテーマ: ${theme}\n`);
 
   try {
-    console.log("⚡ [1/3] X投稿を生成中...");
+    console.log("⚡ [1/4] X投稿を生成中...");
     const xPosts = await generateXPosts(theme);
     const xContent = [`# X投稿 下書き — ${dateStr}\nテーマ: ${theme}\n`,
       ...xPosts.posts.map((p, i) =>
@@ -104,27 +144,55 @@ async function main() {
       )].join("\n");
     saveDraft(`${dateStr}_x_posts.md`, xContent);
 
-    console.log("⚡ [2/3] Zenn記事アウトラインを生成中...");
+    console.log("⚡ [2/4] Zenn記事（全文）を生成中...");
     const zenn = await generateZennOutline(theme);
-    const zennContent = [`---\ntitle: "${zenn.title}"\nemoji: "${zenn.emoji}"\ntype: "tech"\ntopics: [${zenn.tags.map(t=>`"${t}"`).join(",")}]\npublished: false\n---\n`,
+    const zennBody = await generateZennFullArticle(theme, zenn.title);
+    const slugBase = TOPIC_SLUGS[theme] || "weekly";
+    const slug = `ichi-${slugBase}-${dateStr.replace(/-/g, "")}`;
+    const zennFrontmatter = `---\ntitle: "${zenn.title}"\nemoji: "${zenn.emoji}"\ntype: "tech"\ntopics: [${zenn.tags.map(t=>`"${t}"`).join(",")}]\npublished: true\n---\n\n`;
+    const articlesDir = path.join(__dirname, "..", "articles");
+    if (!fs.existsSync(articlesDir)) fs.mkdirSync(articlesDir, { recursive: true });
+    fs.writeFileSync(path.join(articlesDir, `${slug}.md`), zennFrontmatter + zennBody, "utf-8");
+    console.log(`  ✅ 保存: articles/${slug}.md （Zenn自動公開）`);
+    // アウトラインも drafts に保存（レビュー用）
+    const zennOutline = [`---\ntitle: "${zenn.title}"\nemoji: "${zenn.emoji}"\ntype: "tech"\ntopics: [${zenn.tags.map(t=>`"${t}"`).join(",")}]\npublished: false\n---\n`,
       zenn.intro,"\n---\n",
       ...zenn.sections.map(s=>`## ${s.heading}\n\n<!-- ${s.summary} -->${s.has_code?"\n\n```typescript\n// TODO: 実装\n```":""}\n`),
       `## まとめ\n\n${zenn.outro}\n\n---\n*[ICHI](${CONFIG.blog_url}) — ${CONFIG.tagline}*`
     ].join("\n");
-    saveDraft(`${dateStr}_zenn_article.md`, zennContent);
+    saveDraft(`${dateStr}_zenn_outline.md`, zennOutline);
 
-    console.log("⚡ [3/3] note記事アウトラインを生成中...");
+    console.log("⚡ [3/4] note記事（全文）を生成中...");
     const note = await generateNoteOutline(theme);
-    const noteContent = [`# ${note.title}\n`,note.intro,"\n---\n",
-      ...note.sections.map(s=>`## ${s.heading}\n\n<!-- ${s.summary} -->\n`),
-      `## まとめ\n\n${note.outro}\n\n---\n*ICHIの最新情報は [X](https://x.com/ICHI_automation) でも発信しています。*`
-    ].join("\n");
+    const noteBody = await generateNoteFull(theme, note.title);
+    const noteContent = `# ${note.title}\n\n${noteBody}\n\n---\n*ICHIの最新情報は [X](https://x.com/ICHI_automation) でも発信しています。*`;
     saveDraft(`${dateStr}_note_article.md`, noteContent);
 
-    const report = `# ICHI 週次コンテンツレポート\n生成日: ${dateStr}\n今週のテーマ: **${theme}**\n\n## 生成ファイル\n- X投稿5本: ${dateStr}_x_posts.md\n- Zenn記事: ${dateStr}_zenn_article.md （タイトル: ${zenn.title}）\n- note記事: ${dateStr}_note_article.md （タイトル: ${note.title}）\n\n## 今週のアクション\n- [ ] X投稿5本を確認して投稿\n- [ ] Zenn記事を本文化して公開（火曜12時）\n- [ ] note記事を本文化して公開（木曜19時）\n`;
+    console.log("⚡ [4/4] 週次レポートを生成中...");
+    const report = [
+      `# ICHI 週次コンテンツレポート`,
+      `生成日: ${dateStr}`,
+      `今週のテーマ: **${theme}**`,
+      ``,
+      `## 生成ファイル`,
+      `- X投稿5本: drafts/${dateStr}_x_posts.md`,
+      `- Zenn記事（全文・自動公開済み）: articles/${slug}.md`,
+      `  タイトル: ${zenn.title}`,
+      `- Zennアウトライン（確認用）: drafts/${dateStr}_zenn_outline.md`,
+      `- note記事（全文）: drafts/${dateStr}_note_article.md`,
+      `  タイトル: ${note.title}`,
+      ``,
+      `## 今週のアクション`,
+      `- [ ] X投稿: GitHub Actionsが月〜金に1本ずつ自動投稿`,
+      `- [x] Zenn: articles/ にコミット済み → Zenn連携で自動公開`,
+      `- [ ] note: drafts/${dateStr}_note_article.md を https://note.com/new にコピペして公開（木曜19時推奨）`,
+    ].join("\n");
     saveDraft(`${dateStr}_weekly_report.md`, report);
 
-    console.log("\n✨ 生成完了！drafts/ フォルダを確認してください\n");
+    console.log("\n✨ 生成完了！");
+    console.log(`  📰 Zenn: articles/${slug}.md → push後に自動公開`);
+    console.log(`  🐦 X: 月〜金 12:00 JST に自動投稿`);
+    console.log(`  📝 note: drafts/${dateStr}_note_article.md をコピペして公開\n`);
   } catch (err) {
     console.error("❌ エラー:", err.message);
     process.exit(1);

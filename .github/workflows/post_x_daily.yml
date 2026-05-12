@@ -1,0 +1,45 @@
+name: X 日次自動投稿
+
+on:
+  schedule:
+    # 月〜金 3:00 UTC = 12:00 JST
+    - cron: "0 3 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  post-tweet:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: X に投稿
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+        run: node scripts/post_to_x.js
+
+      - name: 投稿状態をコミット
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "ICHI Marketing Bot"
+          git add drafts/*.posted.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "chore: X投稿済みフラグを更新 $(date +%Y-%m-%d)"
+          git push || true
+
+      - name: サマリー表示
+        run: |
+          echo "## 🐦 X投稿完了" >> $GITHUB_STEP_SUMMARY
+          echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
