@@ -5,6 +5,7 @@
   "scripts": {
     "generate": "node scripts/generate_weekly_content.js",
     "post-x": "node scripts/post_to_x.js",
+    "notion": "node scripts/publish_to_notion.js",
     "new-project": "node engineering/scripts/new-project.js",
     "gen:test": "node engineering/scripts/gen-test.js",
     "gen:docs": "node engineering/scripts/gen-docs.js",
