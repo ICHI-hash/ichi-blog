@@ -7,6 +7,10 @@ planning/outputs/
 planning/inputs/*.md
 !planning/inputs/*.example.md
 
+# sales pipeline (機微情報: 顧客名・商談内容)
+sales/inputs/pipeline/**
+!sales/inputs/pipeline/.gitkeep
+
 # accounting (機微情報: 顧客名・金額・口座番号などを含む)
 # inputs: 機微データを含む入力ファイル
 accounting/inputs/invoices/*.md

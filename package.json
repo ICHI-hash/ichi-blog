@@ -22,7 +22,8 @@
     "reconcile": "node accounting/scripts/reconcile.js",
     "payments": "node accounting/scripts/payments.js",
     "monthly-report": "node accounting/scripts/monthly-report.js",
-    "tax-package": "node accounting/scripts/tax-package.js"
+    "tax-package": "node accounting/scripts/tax-package.js",
+    "sales:reminder": "node sales/scripts/morning-reminder.js"
   },
   "engines": {
     "node": ">=18.0.0"
