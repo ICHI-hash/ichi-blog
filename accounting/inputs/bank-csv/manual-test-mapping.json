@@ -1,0 +1,6 @@
+{
+  "date_col": "Date",
+  "description_col": "Description",
+  "amount_col": "Amount",
+  "sign": "expense_positive"
+}

@@ -6,3 +6,20 @@ node_modules
 planning/outputs/
 planning/inputs/*.md
 !planning/inputs/*.example.md
+
+# accounting (機微情報: 顧客名・金額・口座番号などを含む)
+# inputs: 機微データを含む入力ファイル
+accounting/inputs/invoices/*.md
+accounting/inputs/payables/*.md
+!accounting/inputs/payables/README.md
+accounting/inputs/bank-csv/*.csv
+accounting/inputs/receipts/*/
+accounting/inputs/receipts/*
+!accounting/inputs/receipts/README.md
+# outputs と state は全除外(.gitkeep のみ許可)
+accounting/outputs/**
+!accounting/outputs/**/.gitkeep
+accounting/state/**
+!accounting/state/.gitkeep
+# templates の .example.md は許可
+!accounting/templates/*.example.md

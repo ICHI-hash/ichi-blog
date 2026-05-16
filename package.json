@@ -18,7 +18,11 @@
     "dashboard": "node planning/scripts/dashboard.js",
     "weekly-report": "node planning/scripts/weekly-report.js",
     "invoice": "node accounting/scripts/invoice.js",
-    "categorize": "node accounting/scripts/categorize.js"
+    "categorize": "node accounting/scripts/categorize.js",
+    "reconcile": "node accounting/scripts/reconcile.js",
+    "payments": "node accounting/scripts/payments.js",
+    "monthly-report": "node accounting/scripts/monthly-report.js",
+    "tax-package": "node accounting/scripts/tax-package.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -27,6 +31,7 @@
     "@anthropic-ai/sdk": "^0.95.1",
     "@notionhq/client": "^5.21.0",
     "@octokit/rest": "^22.0.1",
+    "adm-zip": "^0.5.17",
     "csv-parse": "^6.2.1",
     "csv-stringify": "^6.7.0",
     "dotenv": "^17.4.2",

@@ -1,0 +1,9 @@
+{
+  "_comment": "不明形式の CSV を --format manual で処理するときのカラムマッピング設定",
+  "date_col": "取引日",
+  "description_col": "備考",
+  "amount_col": "出金額",
+  "amount_in_col": "入金額",
+  "sign": "expense_positive",
+  "encoding": "utf8"
+}
