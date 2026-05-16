@@ -78,6 +78,40 @@ npm run sales:reminder -- --dry-run
 | `BUSINESS_NOTIFY_EMAIL` | リマインダー送信先 |
 | `SALES_SHEET_ID` | Google Sheets ID (任意) |
 
+## 経理連携
+
+### stage: 受注 → 請求書下書き自動生成
+
+パイプライン Markdown の `stage` を `受注` に変更すると、
+`npm run sync-from-sales` が経理の請求書下書きを自動生成します。
+
+```yaml
+# sales/inputs/pipeline/sample.md
+stage: 受注   # ← 受注時に変更
+billing:
+  amount: 300000            # 税抜金額(必須 or needs_review)
+  tax_rate: 10
+  payment_terms: 月末締め翌月末払い
+  items:
+    - name: サービス名
+      qty: 1
+      unit_price: 300000
+      tax_rate: 10
+```
+
+`billing` セクションが空でも動作します (AI が品目名を補完、金額は人が入力)。
+
+詳細なフィールド説明は `sales/templates/pipeline.example.md` を参照。
+
+### Google Sheets を使う場合の列構造
+
+A〜F列: `project_name, client_name, stage, next_action, next_action_due, owner_note`
+G〜M列: `billing_amount, billing_tax_rate, billing_payment_terms, billing_due_offset_days, billing_items_json, billing_client_address, billing_withholding`
+
+G列以降はオプション。未設定なら `needs_review=true` の下書きが生成されます。
+
+---
+
 ## Gmail 実装について
 
 メール送信の本体実装は `lib/mailer.js` (リポジトリ直下) にあります。

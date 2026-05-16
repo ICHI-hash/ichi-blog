@@ -433,6 +433,15 @@ async function main() {
 
   fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n', 'utf8');
   console.log(`メタ出力: ${metaPath}`);
+
+  // draft- プレフィックスのファイルを発行した場合、sales-to-accounting.json を更新
+  if (path.basename(absPath).startsWith('draft-')) {
+    try {
+      const { updateIssued } = require('../lib/sales-bridge-state');
+      const updated = updateIssued(absPath, invoiceNumber);
+      if (updated) console.log(`[sales→経理] sales-to-accounting.json を更新しました (${invoiceNumber})`);
+    } catch { /* 連携ファイルが存在しない場合は無視 */ }
+  }
   console.log('');
   console.log(`  税抜合計:   ${formatJPY(amounts.subtotal)}`);
   if (taxStatus !== 'tax_exempt') {

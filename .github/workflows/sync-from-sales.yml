@@ -1,0 +1,47 @@
+name: Accounting - Sync from Sales (受注 → 請求書下書き)
+
+on:
+  schedule:
+    # JST 09:30 = UTC 00:30 (sales:reminder の 30 分後)
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Asia/Tokyo
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: 受注案件を検出して請求書下書きを生成
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          BUSINESS_NOTIFY_EMAIL: ${{ secrets.BUSINESS_NOTIFY_EMAIL }}
+          SALES_SHEET_ID: ${{ secrets.SALES_SHEET_ID }}
+        run: npm run sync-from-sales
+
+      - name: サマリー表示
+        run: |
+          echo "## 📋 受注連携サマリ" >> $GITHUB_STEP_SUMMARY
+          echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**注意**: 生成された下書きは \`accounting/inputs/invoices/\` に作成されますが、" >> $GITHUB_STEP_SUMMARY
+          echo "gitignore のためコミットされません。ローカルでの実行を推奨します。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Sheets ソース利用時は \`SALES_SHEET_ID\` Secret を設定してください。" >> $GITHUB_STEP_SUMMARY

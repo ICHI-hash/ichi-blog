@@ -24,7 +24,8 @@
     "monthly-report": "node accounting/scripts/monthly-report.js",
     "tax-package": "node accounting/scripts/tax-package.js",
     "sales:reminder": "node sales/scripts/morning-reminder.js",
-    "fetch-receipts": "node accounting/scripts/fetch-receipts.js"
+    "fetch-receipts": "node accounting/scripts/fetch-receipts.js",
+    "sync-from-sales": "node accounting/scripts/sync-from-sales.js"
   },
   "engines": {
     "node": ">=18.0.0"
