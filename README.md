@@ -4,6 +4,23 @@
 
 ---
 
+## 経理部門 自動化（`accounting/`）
+
+### 概要
+
+Claude API + Gmail + Notion を活用して、経理業務を自動化します。
+
+- **請求書の自動生成と発番管理**（`npm run invoice`、インボイス対応 PDF）
+- **経費の自動仕訳**（`npm run categorize`、AI による勘定科目分類）
+- **入金消込の補助**（`npm run reconcile`、Jaro-Winkler + AI スコアリング）
+- **月次レポート**（`npm run monthly-report`、推定納税額・Notion 連携）
+- **支払予定リマインダー**（`npm run payments`、Gmail 送信・GitHub Actions 対応）
+- **税理士向け月次パッケージ**（`npm run tax-package`、ZIP 圧縮・チェックリスト付き）
+
+詳細: [`accounting/README.md`](accounting/README.md)
+
+---
+
 ## 営業部門 自動化（`sales/`）
 
 ### 概要

@@ -1,0 +1,60 @@
+name: Accounting - Monthly Report
+
+on:
+  schedule:
+    # JST 毎月 5 日 09:00 = UTC 5 日 00:00
+    - cron: "0 0 5 * *"
+  workflow_dispatch:
+    inputs:
+      yyyymm:
+        description: "対象月 (YYYY-MM、空欄なら前月)"
+        required: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Asia/Tokyo
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: 対象月を決定
+        id: target
+        run: |
+          INPUT_MONTH="${{ github.event.inputs.yyyymm }}"
+          if [ -n "$INPUT_MONTH" ]; then
+            echo "yyyymm=$INPUT_MONTH" >> "$GITHUB_OUTPUT"
+          else
+            echo "yyyymm=$(date -d 'last month' +%Y-%m)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 月次レポートを生成
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB_MONTHLY_REPORT_ID: ${{ secrets.NOTION_DB_MONTHLY_REPORT_ID }}
+          TAX_STATUS: ${{ secrets.TAX_STATUS }}
+          TAX_METHOD: ${{ secrets.TAX_METHOD }}
+          TAX_BUSINESS_CATEGORY: ${{ secrets.TAX_BUSINESS_CATEGORY }}
+        run: npm run monthly-report -- ${{ steps.target.outputs.yyyymm }} --notion
+
+      - name: サマリー表示
+        run: |
+          echo "## 📊 月次レポート生成完了" >> $GITHUB_STEP_SUMMARY
+          echo "対象月: ${{ steps.target.outputs.yyyymm }}" >> $GITHUB_STEP_SUMMARY
+          echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**注意**: \`accounting/inputs/\` および \`accounting/outputs/\` は" >> $GITHUB_STEP_SUMMARY
+          echo "gitignore のため Actions 環境に入力データが存在しません。" >> $GITHUB_STEP_SUMMARY
+          echo "意味のあるレポートは人がローカルで実行してください。" >> $GITHUB_STEP_SUMMARY

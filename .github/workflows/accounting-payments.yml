@@ -1,0 +1,45 @@
+name: Accounting - Payments Reminder
+
+on:
+  schedule:
+    # JST 09:00 = UTC 00:00
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: Asia/Tokyo
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: 支払予定リマインダーを送信
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          BUSINESS_NOTIFY_EMAIL: ${{ secrets.BUSINESS_NOTIFY_EMAIL }}
+        run: npm run payments
+
+      - name: サマリー表示
+        run: |
+          echo "## 💰 支払予定リマインダー" >> $GITHUB_STEP_SUMMARY
+          echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**注意**: \`accounting/inputs/payables/\` は gitignore のため Actions 環境には" >> $GITHUB_STEP_SUMMARY
+          echo "存在しません。対象 0 件でのスキップが正常動作です。" >> $GITHUB_STEP_SUMMARY
+          echo "実運用では人がローカルで実行してください。" >> $GITHUB_STEP_SUMMARY
