@@ -1,0 +1,63 @@
+name: Accounting - Fetch Receipts from Gmail
+
+on:
+  schedule:
+    # JST 月曜 09:00 = UTC 月曜 00:00
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "取得対象期間 (日数)"
+        required: false
+        default: "7"
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Tokyo
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: 領収書を Gmail から取得・OCR
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+        run: |
+          DAYS="${{ github.event.inputs.days || '7' }}"
+          npm run fetch-receipts -- --mode gmail --days $DAYS
+
+      - name: アーティファクトをアップロード
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fetched-receipts-${{ github.run_id }}
+          path: |
+            accounting/outputs/fetch-receipts/
+            accounting/state/receipts-index.json
+            accounting/state/receipt-fetch.json
+          retention-days: 30
+
+      - name: サマリー表示
+        run: |
+          echo "## 📄 領収書 Gmail 取り込み" >> $GITHUB_STEP_SUMMARY
+          echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "取得した PDF/画像と OCR 結果は Artifact として 30 日間保存されます。" >> $GITHUB_STEP_SUMMARY
+          echo "ダウンロードして \`accounting/inputs/receipts/YYYY-MM/\` に手動配置してください。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**OAuth スコープ**: gmail.readonly が必要です (lib/README.md 参照)。" >> $GITHUB_STEP_SUMMARY

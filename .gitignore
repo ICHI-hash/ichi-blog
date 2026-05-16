@@ -7,6 +7,9 @@ planning/outputs/
 planning/inputs/*.md
 !planning/inputs/*.example.md
 
+# 領収書テスト用ディレクトリ (機微情報)
+accounting/inputs/test-receipts/**
+
 # sales pipeline (機微情報: 顧客名・商談内容)
 sales/inputs/pipeline/**
 !sales/inputs/pipeline/.gitkeep
