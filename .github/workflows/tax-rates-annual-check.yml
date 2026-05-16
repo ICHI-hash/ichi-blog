@@ -1,0 +1,77 @@
+name: Accounting - Tax Rates Annual Check
+
+on:
+  schedule:
+    # 毎年 4 月 1 日 JST 09:00 = UTC 00:00
+    - cron: "0 0 1 4 *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true にすると Issue を作成せず内容を stdout に出力する(テスト用)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TZ: Asia/Tokyo
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: チェックリストを生成
+        run: npm run tax-rates-check > /tmp/tax-check.md
+
+      - name: "(dry_run=true) 内容を stdout に出力して終了"
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "=== [DRY RUN] Issue を作成せず内容を出力します ==="
+          cat /tmp/tax-check.md
+          echo "=== [DRY RUN] 終了 ==="
+
+      - name: "Issue を作成"
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs   = require('fs');
+            const body = fs.readFileSync('/tmp/tax-check.md', 'utf8');
+            const year = new Date().getFullYear();
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title: `税制改正年次チェック (${year}年4月)`,
+              body:  body,
+              labels: ['tax-rates', 'annual-review', 'accounting'],
+            });
+            core.notice(`Issue を作成しました: 税制改正年次チェック (${year}年4月)`);
+
+      - name: サマリー表示
+        run: |
+          echo "## 📋 税制改正年次チェック" >> $GITHUB_STEP_SUMMARY
+          echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "**DRY RUN**: Issue の作成をスキップしました。" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Issue を作成しました。リポジトリの Issues タブを確認してください。" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>チェックリスト内容</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/tax-check.md >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY

@@ -148,4 +148,7 @@ module.exports = {
   estimateConsumptionTaxGeneral,
   estimateConsumptionTaxSimple,
   estimateMonthlyTax,
+  // テーブル定数 (tax-rates-summary.js でチェックリスト生成に使用)
+  INCOME_TAX_BRACKETS,
+  DEEMED_PURCHASE_RATES,
 };
