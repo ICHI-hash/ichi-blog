@@ -17,10 +17,19 @@ jobs:
     timeout-minutes: 30
     env:
       TZ: Asia/Tokyo
+      INPUT_BASE_DIR: ./data
+      STATE_BASE_DIR: ./data
+      OUTPUT_BASE_DIR: ./data
 
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
+
+      - name: ichi-data リポをチェックアウト
+        uses: ./.github/actions/checkout-data-repo
+        with:
+          data_repo: ${{ secrets.DATA_REPO_FULL_NAME }}
+          token: ${{ secrets.DATA_REPO_TOKEN }}
 
       - name: Node.js セットアップ
         uses: actions/setup-node@v4
@@ -41,12 +50,23 @@ jobs:
           DAYS="${{ github.event.inputs.days || '7' }}"
           npm run fetch-receipts -- --mode gmail --days $DAYS
 
-      - name: アーティファクトをアップロード
+      - name: 変更を ichi-data にコミット
+        if: always()
+        uses: ./.github/actions/commit-data-changes
+        with:
+          message: 'chore(state): 領収書取り込み (auto)'
+          data_repo: ${{ secrets.DATA_REPO_FULL_NAME }}
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+
+      - name: アーティファクトをアップロード (バックアップ)
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: fetched-receipts-${{ github.run_id }}
           path: |
+            data/accounting/outputs/fetch-receipts/
+            data/accounting/state/receipts-index.json
+            data/accounting/state/receipt-fetch.json
             accounting/outputs/fetch-receipts/
             accounting/state/receipts-index.json
             accounting/state/receipt-fetch.json
@@ -57,7 +77,5 @@ jobs:
           echo "## 📄 領収書 Gmail 取り込み" >> $GITHUB_STEP_SUMMARY
           echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "取得した PDF/画像と OCR 結果は Artifact として 30 日間保存されます。" >> $GITHUB_STEP_SUMMARY
-          echo "ダウンロードして \`accounting/inputs/receipts/YYYY-MM/\` に手動配置してください。" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "取得した PDF/画像と OCR 結果は ichi-data に自動コミットされます。" >> $GITHUB_STEP_SUMMARY
           echo "**OAuth スコープ**: gmail.readonly が必要です (lib/README.md 参照)。" >> $GITHUB_STEP_SUMMARY

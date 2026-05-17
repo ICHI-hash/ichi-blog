@@ -12,8 +12,8 @@ const { loadReconciled, recordMatch }         = require('../lib/reconcile-state'
 const { normalizeName, jaroWinkler }          = require('../lib/string-similarity');
 const { formatJPY }                           = require('../lib/money');
 
-const ACC_ROOT    = path.resolve(__dirname, '..');
-const OUTPUTS_DIR = path.resolve(ACC_ROOT, 'outputs/reconcile');
+const { pathForOutputs } = require('../../lib/paths.js');
+const OUTPUTS_DIR = pathForOutputs('accounting', 'reconcile');
 
 // ------------------------------------------------------------------ JST helpers
 

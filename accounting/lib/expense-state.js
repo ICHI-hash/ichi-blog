@@ -3,8 +3,9 @@ const fs   = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const CATEGORIZED_FILE     = path.resolve(__dirname, '../state/categorized.json');
-const VENDOR_REGISTRY_FILE = path.resolve(__dirname, '../state/vendor-registry.json');
+const { pathForState } = require('../../lib/paths.js');
+const CATEGORIZED_FILE     = pathForState('accounting', 'categorized.json');
+const VENDOR_REGISTRY_FILE = pathForState('accounting', 'vendor-registry.json');
 
 // ------------------------------------------------------------------ helpers
 

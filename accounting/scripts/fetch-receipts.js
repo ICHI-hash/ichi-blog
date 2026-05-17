@@ -11,9 +11,11 @@ const { addReceipts, findByPath, loadIndex } = require('../lib/receipts-index');
 const { ocrReceipt }                    = require('../lib/receipt-ocr');
 const { writeCSV }                      = require('../lib/csv');
 
-const ACC_ROOT       = path.resolve(__dirname, '..');
-const RECEIPTS_BASE  = path.resolve(ACC_ROOT, 'inputs/receipts');
-const OUTPUTS_DIR    = path.resolve(ACC_ROOT, 'outputs/fetch-receipts');
+const { pathForInputs, pathForOutputs } = require('../../lib/paths.js');
+const RECEIPTS_BASE  = pathForInputs('accounting', 'receipts');
+const OUTPUTS_DIR    = pathForOutputs('accounting', 'fetch-receipts');
+// 相対パス計算基点: <INPUT_BASE>/accounting/ (旧 ACC_ROOT と等価)
+const ACCOUNTING_ROOT = path.dirname(path.dirname(RECEIPTS_BASE));
 
 const SUPPORTED_MIME = new Set([
   'application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
@@ -154,7 +156,7 @@ async function processFile({
   }
 
   const destPath  = uniquePath(targetDir, safeName);
-  const relPath   = path.relative(ACC_ROOT, destPath).replace(/\\/g, '/');
+  const relPath   = path.relative(ACCOUNTING_ROOT, destPath).replace(/\\/g, '/');
 
   if (opts.dryRun) {
     console.log(`  [DRY RUN] 配置予定: ${relPath}`);

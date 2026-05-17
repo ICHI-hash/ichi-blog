@@ -14,8 +14,8 @@ const {
 } = require('../lib/monthly-aggregate');
 const { createPage, markdownToBlocks }    = require('../lib/notion');
 
-const ACC_ROOT    = path.resolve(__dirname, '..');
-const OUTPUTS_DIR = path.resolve(ACC_ROOT, 'outputs/monthly-reports');
+const { pathForOutputs } = require('../../lib/paths.js');
+const OUTPUTS_DIR = pathForOutputs('accounting', 'monthly-reports');
 
 // ------------------------------------------------------------------ JST helpers
 

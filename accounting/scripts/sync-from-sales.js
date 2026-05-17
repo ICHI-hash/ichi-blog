@@ -9,9 +9,9 @@ const { isGenerated, recordGenerated }   = require('../lib/sales-bridge-state');
 const { generateDraft }                  = require('../lib/invoice-draft-generator');
 const { isConfigured, sendMail }         = require('../../lib/mailer');
 
-const ACC_ROOT      = path.resolve(__dirname, '..');
-const INVOICES_DIR  = path.resolve(ACC_ROOT, 'inputs/invoices');
-const OUTPUTS_DIR   = path.resolve(ACC_ROOT, 'outputs/sync-from-sales');
+const { pathForInputs, pathForOutputs } = require('../../lib/paths.js');
+const INVOICES_DIR  = pathForInputs('accounting', 'invoices');
+const OUTPUTS_DIR   = pathForOutputs('accounting', 'sync-from-sales');
 
 // ------------------------------------------------------------------ JST helpers
 

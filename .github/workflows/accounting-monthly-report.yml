@@ -16,10 +16,19 @@ jobs:
     timeout-minutes: 15
     env:
       TZ: Asia/Tokyo
+      INPUT_BASE_DIR: ./data
+      STATE_BASE_DIR: ./data
+      OUTPUT_BASE_DIR: ./data
 
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
+
+      - name: ichi-data リポをチェックアウト
+        uses: ./.github/actions/checkout-data-repo
+        with:
+          data_repo: ${{ secrets.DATA_REPO_FULL_NAME }}
+          token: ${{ secrets.DATA_REPO_TOKEN }}
 
       - name: Node.js セットアップ
         uses: actions/setup-node@v4
@@ -55,6 +64,5 @@ jobs:
           echo "対象月: ${{ steps.target.outputs.yyyymm }}" >> $GITHUB_STEP_SUMMARY
           echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**注意**: \`accounting/inputs/\` および \`accounting/outputs/\` は" >> $GITHUB_STEP_SUMMARY
-          echo "gitignore のため Actions 環境に入力データが存在しません。" >> $GITHUB_STEP_SUMMARY
-          echo "意味のあるレポートは人がローカルで実行してください。" >> $GITHUB_STEP_SUMMARY
+          echo "ichi-data の \`accounting/inputs/\` に経費 CSV や請求書を配置することで" >> $GITHUB_STEP_SUMMARY
+          echo "実用的なレポートが生成されます。" >> $GITHUB_STEP_SUMMARY

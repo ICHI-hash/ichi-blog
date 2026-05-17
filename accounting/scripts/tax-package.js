@@ -16,8 +16,8 @@ const {
   paidPayablesCsv,
 } = require('../lib/tax-package');
 
-const ACC_ROOT    = path.resolve(__dirname, '..');
-const PKG_ROOT    = path.resolve(ACC_ROOT, 'outputs/tax-packages');
+const { pathForState, pathForOutputs } = require('../../lib/paths.js');
+const PKG_ROOT    = pathForOutputs('accounting', 'tax-packages');
 
 // ------------------------------------------------------------------ JST helpers
 
@@ -112,7 +112,7 @@ function buildChecklistMd(data, yyyymm, outDir) {
   // 未回収の期日超過請求書
   const allInvoices  = loadAllInvoices();
   const reconciledNums = new Set(
-    (() => { try { return JSON.parse(fs.readFileSync(path.resolve(ACC_ROOT, 'state/reconciled.json'), 'utf8')).matches.map(m => m.invoice_number); } catch { return []; } })()
+    (() => { try { return JSON.parse(fs.readFileSync(pathForState('accounting', 'reconciled.json'), 'utf8')).matches.map(m => m.invoice_number); } catch { return []; } })()
   );
   const overdueUnreceived = allInvoices.filter(inv =>
     !reconciledNums.has(inv.invoice_number) && inv.due_date < today
@@ -187,7 +187,7 @@ function buildEmailMd(data, yyyymm, accountantEmail) {
   const today = todayJST();
   const allInvoices = loadAllInvoices();
   const reconciledNums = new Set(
-    (() => { try { return JSON.parse(fs.readFileSync(path.resolve(ACC_ROOT, 'state/reconciled.json'), 'utf8')).matches.map(m => m.invoice_number); } catch { return []; } })()
+    (() => { try { return JSON.parse(fs.readFileSync(pathForState('accounting', 'reconciled.json'), 'utf8')).matches.map(m => m.invoice_number); } catch { return []; } })()
   );
   const overdueCount = allInvoices.filter(inv =>
     !reconciledNums.has(inv.invoice_number) && inv.due_date < today
@@ -336,7 +336,7 @@ async function main() {
   ensureDir(invDir);
   consolidatedInvoicesCsv(data.sales.invoices, path.resolve(invDir, '_invoices.csv'));
   for (const { meta, pdf_path } of data.sales.invoices) {
-    const metaSrc = path.resolve(ACC_ROOT, 'outputs/invoices', `${meta.invoice_number}.meta.json`);
+    const metaSrc = pathForOutputs('accounting', 'invoices', `${meta.invoice_number}.meta.json`);
     if (fs.existsSync(metaSrc)) fs.copyFileSync(metaSrc, path.resolve(invDir, `${meta.invoice_number}.meta.json`));
     if (pdf_path && fs.existsSync(pdf_path)) fs.copyFileSync(pdf_path, path.resolve(invDir, `${meta.invoice_number}.pdf`));
   }

@@ -17,8 +17,8 @@ const {
 } = require('../lib/expense-state');
 const { sumAmounts, formatJPY } = require('../lib/money');
 
-const ACC_ROOT   = path.resolve(__dirname, '..');
-const OUTPUTS_DIR = path.resolve(ACC_ROOT, 'outputs/categorize');
+const { pathForOutputs } = require('../../lib/paths.js');
+const OUTPUTS_DIR = pathForOutputs('accounting', 'categorize');
 
 // ------------------------------------------------------------------ JST helpers
 

@@ -2,7 +2,8 @@
 const fs   = require('fs');
 const path = require('path');
 
-const INDEX_FILE = path.resolve(__dirname, '../state/receipts-index.json');
+const { pathForState } = require('../../lib/paths.js');
+const INDEX_FILE = pathForState('accounting', 'receipts-index.json');
 
 function atomicWrite(filepath, data) {
   const tmp = filepath + '.tmp';

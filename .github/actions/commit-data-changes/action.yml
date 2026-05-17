@@ -1,0 +1,45 @@
+name: 'Commit changes to ichi-data'
+description: |
+  ./data 配下の変更を ichi-data リポに commit & push する。
+  DATA_REPO_TOKEN がない場合や ./data が git repo でない場合は no-op。
+
+inputs:
+  message:
+    description: 'Commit message'
+    required: false
+    default: 'chore: 自動更新 (Actions)'
+  data_repo:
+    description: 'ichi-data のフルネーム (例: ICHI-hash/ichi-data)'
+    required: true
+  token:
+    description: 'ichi-data に Contents:write 権限を持つ PAT'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Commit & push to data repo
+      if: inputs.data_repo != '' && inputs.token != ''
+      shell: bash
+      env:
+        DATA_TOKEN: ${{ inputs.token }}
+        DATA_REPO: ${{ inputs.data_repo }}
+        COMMIT_MSG: ${{ inputs.message }}
+      run: |
+        if [ ! -d ./data/.git ]; then
+          echo "::warning::./data is not a git repo — skipping commit."
+          exit 0
+        fi
+        cd ./data
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --staged --quiet; then
+          echo "No changes to commit in ichi-data."
+          exit 0
+        fi
+        git commit -m "${COMMIT_MSG}"
+        # TOKEN を env 経由で渡してログへの露出を最小化
+        git remote set-url origin "https://x-access-token:${DATA_TOKEN}@github.com/${DATA_REPO}.git"
+        git push origin HEAD:main
+        echo "::notice::Committed and pushed to ${DATA_REPO}"

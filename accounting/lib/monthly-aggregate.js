@@ -6,11 +6,11 @@ const matter = require('gray-matter');
 const { parseCSV }        = require('./csv');
 const { loadAllInvoices } = require('./invoice-index');
 
-const ACC_ROOT       = path.resolve(__dirname, '..');
-const INVOICES_DIR   = path.resolve(ACC_ROOT, 'outputs/invoices');
-const CATEGORIZE_DIR = path.resolve(ACC_ROOT, 'outputs/categorize');
-const PAYABLES_DIR   = path.resolve(ACC_ROOT, 'inputs/payables');
-const RECONCILED_FILE = path.resolve(ACC_ROOT, 'state/reconciled.json');
+const { pathForInputs, pathForState, pathForOutputs } = require('../../lib/paths.js');
+const INVOICES_DIR   = pathForOutputs('accounting', 'invoices');
+const CATEGORIZE_DIR = pathForOutputs('accounting', 'categorize');
+const PAYABLES_DIR   = pathForInputs('accounting', 'payables');
+const RECONCILED_FILE = pathForState('accounting', 'reconciled.json');
 
 // 消費税逆算で除外する科目(税額計算に適さないもの)
 const TAX_CREDIT_EXCLUDE = new Set(['事業主貸', '租税公課']);

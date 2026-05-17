@@ -2,7 +2,8 @@
 const fs   = require('fs');
 const path = require('path');
 
-const RECONCILED_FILE = path.resolve(__dirname, '../state/reconciled.json');
+const { pathForState } = require('../../lib/paths.js');
+const RECONCILED_FILE = pathForState('accounting', 'reconciled.json');
 
 function atomicWrite(filepath, data) {
   const tmp = filepath + '.tmp';

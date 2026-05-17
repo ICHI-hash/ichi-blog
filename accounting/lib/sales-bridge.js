@@ -9,7 +9,8 @@ const fs   = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
 
-const PIPELINE_DIR = path.resolve(__dirname, '../../sales/inputs/pipeline');
+const { pathForInputs } = require('../../lib/paths.js');
+const PIPELINE_DIR = pathForInputs('sales', 'pipeline');
 
 // ------------------------------------------------------------------ Sheets
 

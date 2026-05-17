@@ -1,0 +1,32 @@
+name: 'Checkout ichi-data repo'
+description: |
+  ichi-data リポを ./data にチェックアウトする。
+  DATA_REPO_FULL_NAME または DATA_REPO_TOKEN が未設定なら no-op。
+  その場合、後続スクリプトは INPUT_BASE_DIR 未設定として
+  ichi-blog 配下のパスにフォールバックする。
+
+inputs:
+  data_repo:
+    description: 'ichi-data のフルネーム (例: ICHI-hash/ichi-data)'
+    required: true
+  token:
+    description: 'ichi-data に Contents:write 権限を持つ PAT'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Skip when data repo is not configured
+      if: inputs.data_repo == '' || inputs.token == ''
+      shell: bash
+      run: |
+        echo "::warning::DATA_REPO_FULL_NAME or DATA_REPO_TOKEN is not set."
+        echo "Falling back to ichi-blog local paths (backward compatible)."
+
+    - name: Checkout data repo
+      if: inputs.data_repo != '' && inputs.token != ''
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.data_repo }}
+        token: ${{ inputs.token }}
+        path: data

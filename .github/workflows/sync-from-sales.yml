@@ -12,10 +12,19 @@ jobs:
     timeout-minutes: 15
     env:
       TZ: Asia/Tokyo
+      INPUT_BASE_DIR: ./data
+      STATE_BASE_DIR: ./data
+      OUTPUT_BASE_DIR: ./data
 
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
+
+      - name: ichi-data リポをチェックアウト
+        uses: ./.github/actions/checkout-data-repo
+        with:
+          data_repo: ${{ secrets.DATA_REPO_FULL_NAME }}
+          token: ${{ secrets.DATA_REPO_TOKEN }}
 
       - name: Node.js セットアップ
         uses: actions/setup-node@v4
@@ -36,12 +45,18 @@ jobs:
           SALES_SHEET_ID: ${{ secrets.SALES_SHEET_ID }}
         run: npm run sync-from-sales
 
+      - name: 変更を ichi-data にコミット
+        if: always()
+        uses: ./.github/actions/commit-data-changes
+        with:
+          message: 'chore(state): 受注連携 state 更新 (auto)'
+          data_repo: ${{ secrets.DATA_REPO_FULL_NAME }}
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+
       - name: サマリー表示
         run: |
           echo "## 📋 受注連携サマリ" >> $GITHUB_STEP_SUMMARY
           echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**注意**: 生成された下書きは \`accounting/inputs/invoices/\` に作成されますが、" >> $GITHUB_STEP_SUMMARY
-          echo "gitignore のためコミットされません。ローカルでの実行を推奨します。" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "生成された請求書下書きは ichi-data に自動コミットされます。" >> $GITHUB_STEP_SUMMARY
           echo "Sheets ソース利用時は \`SALES_SHEET_ID\` Secret を設定してください。" >> $GITHUB_STEP_SUMMARY

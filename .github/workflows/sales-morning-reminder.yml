@@ -12,10 +12,19 @@ jobs:
     timeout-minutes: 10
     env:
       TZ: Asia/Tokyo
+      INPUT_BASE_DIR: ./data
+      STATE_BASE_DIR: ./data
+      OUTPUT_BASE_DIR: ./data
 
     steps:
       - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
+
+      - name: ichi-data リポをチェックアウト
+        uses: ./.github/actions/checkout-data-repo
+        with:
+          data_repo: ${{ secrets.DATA_REPO_FULL_NAME }}
+          token: ${{ secrets.DATA_REPO_TOKEN }}
 
       - name: Node.js セットアップ
         uses: actions/setup-node@v4
@@ -40,5 +49,5 @@ jobs:
           echo "## 📊 営業朝リマインダー" >> $GITHUB_STEP_SUMMARY
           echo "実行日時: $(date '+%Y-%m-%d %H:%M JST')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**注意**: \`sales/inputs/pipeline/\` は gitignore のため Actions 環境には" >> $GITHUB_STEP_SUMMARY
-          echo "存在しません。SALES_SHEET_ID が未設定の場合は対象 0 件で正常終了します。" >> $GITHUB_STEP_SUMMARY
+          echo "ichi-data の \`sales/inputs/pipeline/\` にパイプライン MD を配置するか、" >> $GITHUB_STEP_SUMMARY
+          echo "SALES_SHEET_ID を設定してください。未設定の場合は 0 件で正常終了します。" >> $GITHUB_STEP_SUMMARY

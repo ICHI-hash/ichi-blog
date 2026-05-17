@@ -5,13 +5,13 @@ const matter = require('gray-matter');
 
 const { parseCSV, writeCSV } = require('./csv');
 
-const ACC_ROOT      = path.resolve(__dirname, '..');
-const INVOICES_DIR  = path.resolve(ACC_ROOT, 'outputs/invoices');
-const CATEGORIZE_DIR = path.resolve(ACC_ROOT, 'outputs/categorize');
-const RECONCILE_DIR  = path.resolve(ACC_ROOT, 'outputs/reconcile');
-const BANK_DIR       = path.resolve(ACC_ROOT, 'inputs/bank-csv');
-const PAYABLES_DIR   = path.resolve(ACC_ROOT, 'inputs/payables');
-const RECONCILED_FILE = path.resolve(ACC_ROOT, 'state/reconciled.json');
+const { pathForInputs, pathForState, pathForOutputs } = require('../../lib/paths.js');
+const INVOICES_DIR   = pathForOutputs('accounting', 'invoices');
+const CATEGORIZE_DIR = pathForOutputs('accounting', 'categorize');
+const RECONCILE_DIR  = pathForOutputs('accounting', 'reconcile');
+const BANK_DIR       = pathForInputs('accounting', 'bank-csv');
+const PAYABLES_DIR   = pathForInputs('accounting', 'payables');
+const RECONCILED_FILE = pathForState('accounting', 'reconciled.json');
 
 function safeReadDir(dir) {
   try { return fs.readdirSync(dir); } catch { return []; }
@@ -31,9 +31,8 @@ function toDateStr(val) {
  * @param {{ baseDir?: string }} opts
  */
 function collectForMonth(yyyymm, opts = {}) {
-  const base = opts.baseDir || ACC_ROOT;
-  const RECEIPTS_DIR  = path.resolve(base, 'inputs/receipts', yyyymm);
-  const REPORT_PATH   = path.resolve(base, 'outputs/monthly-reports', `${yyyymm}.md`);
+  const RECEIPTS_DIR  = pathForInputs('accounting', 'receipts', yyyymm);
+  const REPORT_PATH   = pathForOutputs('accounting', 'monthly-reports', `${yyyymm}.md`);
 
   // --- 1. 売上請求書 ---
   const invoices = [];

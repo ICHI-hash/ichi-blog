@@ -2,7 +2,8 @@
 const fs   = require('fs');
 const path = require('path');
 
-const FETCH_STATE_FILE = path.resolve(__dirname, '../state/receipt-fetch.json');
+const { pathForState } = require('../../lib/paths.js');
+const FETCH_STATE_FILE = pathForState('accounting', 'receipt-fetch.json');
 
 function atomicWrite(filepath, data) {
   const tmp = filepath + '.tmp';

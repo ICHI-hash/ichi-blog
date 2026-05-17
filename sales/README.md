@@ -78,6 +78,16 @@ npm run sales:reminder -- --dry-run
 | `BUSINESS_NOTIFY_EMAIL` | リマインダー送信先 |
 | `SALES_SHEET_ID` | Google Sheets ID (任意) |
 
+## データの保管場所 (ichi-data)
+
+`sales/inputs/pipeline/` の機密データは **ichi-data プライベートリポジトリ** で管理します。
+
+- **ローカル**: `ichi-blog/data` → symlink → `../ichi-data` で `sales/inputs/pipeline/` を参照
+- **Actions**: `checkout-data-repo` composite が `./data` に ichi-data をチェックアウト
+- `INPUT_BASE_DIR` が未設定の場合は `sales/inputs/pipeline/` に直接アクセス (後方互換)
+
+---
+
 ## 経理連携
 
 ### stage: 受注 → 請求書下書き自動生成

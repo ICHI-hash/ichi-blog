@@ -20,8 +20,9 @@ import { sendMail, isConfigured } from '../lib/mailer.js';
 const _require  = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const matter    = _require('gray-matter');
+const _paths    = _require(path.resolve(__dirname, '../../lib/paths.js'));
 
-const PIPELINE_DIR = path.resolve(__dirname, '../inputs/pipeline');
+const PIPELINE_DIR = _paths.pathForInputs('sales', 'pipeline');
 
 // ------------------------------------------------------------------ date helpers
 

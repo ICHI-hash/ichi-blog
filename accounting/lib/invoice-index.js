@@ -2,7 +2,8 @@
 const fs   = require('fs');
 const path = require('path');
 
-const INVOICES_DIR = path.resolve(__dirname, '../outputs/invoices');
+const { pathForOutputs } = require('../../lib/paths.js');
+const INVOICES_DIR = pathForOutputs('accounting', 'invoices');
 
 /**
  * outputs/invoices/*.meta.json を全件読み込み、配列で返す。

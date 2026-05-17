@@ -9,9 +9,9 @@ const { sendMail }                       = require('../lib/mailer');
 const { makePayableId, isSent, recordSent } = require('../lib/payables-state');
 const { formatJPY }                      = require('../lib/money');
 
-const ACC_ROOT    = path.resolve(__dirname, '..');
-const PAYABLES_DIR = path.resolve(ACC_ROOT, 'inputs/payables');
-const OUTPUTS_DIR  = path.resolve(ACC_ROOT, 'outputs/payments');
+const { pathForInputs, pathForOutputs } = require('../../lib/paths.js');
+const PAYABLES_DIR = pathForInputs('accounting', 'payables');
+const OUTPUTS_DIR  = pathForOutputs('accounting', 'payments');
 
 // ------------------------------------------------------------------ JST helpers
 

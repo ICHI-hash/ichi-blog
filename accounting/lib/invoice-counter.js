@@ -1,8 +1,8 @@
 'use strict';
 const fs = require('fs');
-const path = require('path');
+const { pathForState } = require('../../lib/paths.js');
 
-const COUNTER_FILE = path.resolve(__dirname, '../state/invoice-counter.json');
+const COUNTER_FILE = pathForState('accounting', 'invoice-counter.json');
 
 function readCounter() {
   try {

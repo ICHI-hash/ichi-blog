@@ -7,8 +7,21 @@ planning/outputs/
 planning/inputs/*.md
 !planning/inputs/*.example.md
 
+# 機密ファイルの安全対策
+*.env.txt
+.env.backup
+.env.bak
+
+# データリポジトリ分離 (タスク 5)
+# ichi-data リポへのシンボリックリンク or クローン
+/data
+/data/
+# 雛形ディレクトリ (人が ichi-data リポに投入後は削除してよい)
+/ichi-data-template/
+
 # 領収書テスト用ディレクトリ (機微情報)
 accounting/inputs/test-receipts/**
+accounting/inputs/test-receipts-ocr/**
 
 # sales pipeline (機微情報: 顧客名・商談内容)
 sales/inputs/pipeline/**

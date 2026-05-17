@@ -15,8 +15,8 @@ const {
 } = require('../lib/money');
 const { issueNext } = require('../lib/invoice-counter');
 
-const ACC_ROOT   = path.resolve(__dirname, '..');
-const OUTPUTS_DIR = path.resolve(ACC_ROOT, 'outputs/invoices');
+const { pathForOutputs } = require('../../lib/paths.js');
+const OUTPUTS_DIR   = pathForOutputs('accounting', 'invoices');
 const TEMPLATES_DIR = path.resolve(__dirname, 'templates');
 
 // ------------------------------------------------------------------ helpers
