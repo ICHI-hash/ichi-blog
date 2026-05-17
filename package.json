@@ -26,7 +26,8 @@
     "sales:reminder": "node sales/scripts/morning-reminder.js",
     "fetch-receipts": "node accounting/scripts/fetch-receipts.js",
     "sync-from-sales": "node accounting/scripts/sync-from-sales.js",
-    "tax-rates-check": "node accounting/scripts/tax-rates-check.js"
+    "tax-rates-check": "node accounting/scripts/tax-rates-check.js",
+    "audit": "node accounting/scripts/audit.js"
   },
   "engines": {
     "node": ">=18.0.0"
