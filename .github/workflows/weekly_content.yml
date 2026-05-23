@@ -43,13 +43,6 @@ jobs:
           THEME: ${{ github.event.inputs.theme }}
         run: node scripts/generate_weekly_content.js
 
-      - name: Notionに出力
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_X_POSTS_DB_ID: ${{ secrets.NOTION_X_POSTS_DB_ID }}
-          NOTION_NOTE_DB_ID: ${{ secrets.NOTION_NOTE_DB_ID }}
-        run: node scripts/publish_to_notion.js
-
       - name: ドラフトをコミット
         run: |
           git config --local user.email "action@github.com"

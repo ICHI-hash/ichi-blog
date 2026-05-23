@@ -1,0 +1,225 @@
+'use strict';
+const fs   = require('fs');
+const path = require('path');
+const { Client } = require('@notionhq/client');
+
+// .env を自動ロード
+try {
+  require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+} catch (_) {}
+
+const NOTION_TOKEN  = process.env.NOTION_TOKEN;
+const X_POSTS_DB_ID = process.env.NOTION_X_POSTS_DB_ID;
+const NOTE_DB_ID    = process.env.NOTION_NOTE_DB_ID;
+
+// ── 引数パース ───────────────────────────────────────────────────────────────
+// 使い方:
+//   npm run notion                          # 今日以降の全 _x_posts.md を処理
+//   npm run notion -- --date 2026-05-14    # 特定日のみ
+//   npm run notion -- --note               # note記事も同時に push
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const result = { dates: [], includeNote: false };
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--date' && args[i + 1]) result.dates.push(args[++i]);
+    else if (args[i] === '--note') result.includeNote = true;
+  }
+  return result;
+}
+
+// ── 環境変数チェック ─────────────────────────────────────────────────────────
+function checkEnv(includeNote) {
+  const required = ['NOTION_TOKEN', 'NOTION_X_POSTS_DB_ID'];
+  if (includeNote) required.push('NOTION_NOTE_DB_ID');
+  const missing = required.filter(k => !process.env[k]);
+  if (missing.length) {
+    console.error('❌ 未設定の環境変数:', missing.join(', '));
+    console.error('   .env ファイルに追記してください（.env.example を参照）');
+    process.exit(1);
+  }
+}
+
+// ── 対象ファイルの検索 ────────────────────────────────────────────────────────
+function findXPostFiles(specificDates) {
+  const draftsDir = path.join(__dirname, '..', 'drafts');
+  if (specificDates.length > 0) {
+    return specificDates.map(d => {
+      const fp = path.join(draftsDir, `${d}_x_posts.md`);
+      if (!fs.existsSync(fp)) throw new Error(`ファイルが見つかりません: ${fp}`);
+      return fp;
+    });
+  }
+  // 日付未指定: 今日以降の全ファイルを処理
+  const today = new Date().toISOString().split('T')[0];
+  const files = fs.readdirSync(draftsDir)
+    .filter(f => /^\d{4}-\d{2}-\d{2}_x_posts\.md$/.test(f) && f.slice(0, 10) >= today)
+    .sort()
+    .map(f => path.join(draftsDir, f));
+  return files;
+}
+
+function findLatestNoteFile() {
+  const draftsDir = path.join(__dirname, '..', 'drafts');
+  const files = fs.readdirSync(draftsDir)
+    .filter(f => /^\d{4}-\d{2}-\d{2}_note_article\.md$/.test(f))
+    .sort().reverse();
+  if (!files.length) throw new Error('note記事ファイルが見つかりません');
+  return path.join(draftsDir, files[0]);
+}
+
+// ── Markdown パーサ ───────────────────────────────────────────────────────────
+function parseXPosts(markdown) {
+  const posts = [];
+  const sections = markdown.split(/(?=^## 投稿 \d+)/m).filter(s => s.startsWith('## 投稿'));
+  for (const section of sections) {
+    const lines = section.split('\n');
+    const header     = lines[0];
+    const typeMatch  = header.match(/\[(.+?)\]/);
+    const timeMatch  = header.match(/投稿時刻:\s*(\d{2}:\d{2})/);
+    const type = typeMatch ? typeMatch[1] : '投稿';
+    const time = timeMatch ? timeMatch[1] : null;
+    const bodyLines = lines.slice(1).filter(l => l.trim() && !l.startsWith('文字数'));
+    // ハッシュタグ行を本文から分離
+    const hashtagLine = bodyLines.find(l => /^#\S/.test(l)) || '';
+    const textLines   = bodyLines.filter(l => !/^#\S/.test(l));
+    const text     = textLines.join('\n').trim();
+    const hashtags = hashtagLine.trim();
+    if (text) posts.push({ type, time, text, hashtags });
+  }
+  return posts;
+}
+
+function richText(t) {
+  return [{ type: 'text', text: { content: String(t).slice(0, 2000) } }];
+}
+
+function markdownToBlocks(md) {
+  const blocks = [];
+  for (const line of md.split('\n')) {
+    const t = line.trim();
+    if (!t || t === '---') continue;
+    if      (t.startsWith('### ')) blocks.push({ object: 'block', type: 'heading_3',          heading_3:          { rich_text: richText(t.slice(4)) } });
+    else if (t.startsWith('## '))  blocks.push({ object: 'block', type: 'heading_2',          heading_2:          { rich_text: richText(t.slice(3)) } });
+    else if (t.startsWith('# '))   blocks.push({ object: 'block', type: 'heading_1',          heading_1:          { rich_text: richText(t.slice(2)) } });
+    else if (/^[-*] /.test(t))     blocks.push({ object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: richText(t.slice(2)) } });
+    else if (/^\d+\. /.test(t))    blocks.push({ object: 'block', type: 'numbered_list_item', numbered_list_item: { rich_text: richText(t.replace(/^\d+\. /, '')) } });
+    else                            blocks.push({ object: 'block', type: 'paragraph',          paragraph:          { rich_text: richText(t) } });
+  }
+  return blocks;
+}
+
+async function appendBlocksChunked(notion, pageId, blocks) {
+  for (let i = 0; i < blocks.length; i += 100) {
+    await notion.blocks.children.append({ block_id: pageId, children: blocks.slice(i, i + 100) });
+  }
+}
+
+// ── X投稿 → Notion ────────────────────────────────────────────────────────────
+async function publishXPostsFile(notion, filePath) {
+  const markdown = fs.readFileSync(filePath, 'utf-8');
+  const dateStr  = path.basename(filePath).slice(0, 10);
+  const posts    = parseXPosts(markdown);
+  const theme    = markdown.match(/テーマ: (.+)/)?.[1]?.trim() || '';
+
+  console.log(`\n🐦 X投稿 → Notion（${dateStr}、${posts.length}本）`);
+
+  for (let i = 0; i < posts.length; i++) {
+    const { type, time, text, hashtags } = posts[i];
+    const title = `[${dateStr}] 投稿${i + 1}【${type}】`;
+    // 日付＋時刻を JST datetime として Notion に渡す
+    const scheduledAt = time
+      ? `${dateStr}T${time}:00+09:00`
+      : dateStr;
+
+    await notion.pages.create({
+      parent: { database_id: X_POSTS_DB_ID },
+      properties: {
+        'Name':       { title:     [{ text: { content: title } }] },
+        '本文':       { rich_text: richText(text) },
+        'ハッシュタグ': { rich_text: richText(hashtags) },
+        '予定日時':   { date:      { start: scheduledAt } },
+        'ステータス': { select:    { name: '下書き' } },
+        'テーマ':     { rich_text: richText(theme) },
+        '種別':       { select:    { name: type } },
+      },
+    });
+    console.log(`  ✅ ${title} → ${scheduledAt}`);
+  }
+}
+
+// ── note記事 → Notion ─────────────────────────────────────────────────────────
+async function publishNoteArticle(notion, filePath) {
+  const markdown    = fs.readFileSync(filePath, 'utf-8');
+  const dateStr     = path.basename(filePath).slice(0, 10);
+  const lines       = markdown.split('\n');
+  const title       = (lines.find(l => l.startsWith('# ')) || '').slice(2).trim()
+                      || path.basename(filePath, '.md');
+  const body        = lines.filter(l => !l.startsWith('# ')).join('\n');
+  const blocks      = markdownToBlocks(body);
+
+  // 翌木曜 19:00 JST を公開予定日時にセット
+  const base = new Date(dateStr + 'T00:00:00Z');
+  const daysToThu = (4 - base.getUTCDay() + 7) % 7 || 7;
+  const thu = new Date(base);
+  thu.setUTCDate(base.getUTCDate() + daysToThu);
+  const publishAt = thu.toISOString().split('T')[0] + 'T19:00:00+09:00';
+
+  console.log(`\n📰 note記事 → Notion`);
+  console.log(`  タイトル: ${title}`);
+  console.log(`  公開予定: ${publishAt}`);
+
+  const page = await notion.pages.create({
+    parent: { database_id: NOTE_DB_ID },
+    properties: {
+      'Name':       { title: [{ text: { content: title } }] },
+      '公開予定日': { date:  { start: publishAt } },
+      'ステータス': { select: { name: '下書き' } },
+    },
+    children: blocks.slice(0, 100),
+  });
+
+  if (blocks.length > 100) {
+    await appendBlocksChunked(notion, page.id, blocks.slice(100));
+  }
+  console.log(`  ✅ Notionページ作成完了（${blocks.length}ブロック）`);
+}
+
+// ── main ──────────────────────────────────────────────────────────────────────
+async function main() {
+  const { dates, includeNote } = parseArgs();
+  checkEnv(includeNote);
+  const notion = new Client({ auth: NOTION_TOKEN });
+
+  // X投稿ファイルの取得
+  let xFiles;
+  try {
+    xFiles = findXPostFiles(dates);
+  } catch (e) {
+    console.error('❌', e.message);
+    process.exit(1);
+  }
+
+  if (!xFiles.length) {
+    console.log('📭 処理対象のX投稿ファイルが見つかりません');
+    console.log('   drafts/ 内に今日以降の *_x_posts.md があるか確認してください');
+    process.exit(0);
+  }
+
+  console.log('\n🚀 Notion出力開始');
+  for (const fp of xFiles) {
+    await publishXPostsFile(notion, fp);
+  }
+
+  if (includeNote) {
+    const notePath = findLatestNoteFile();
+    await publishNoteArticle(notion, notePath);
+  }
+
+  console.log('\n✨ Notion出力完了\n');
+}
+
+main().catch(err => {
+  console.error('❌ エラー:', err.message);
+  if (err.body) console.error('詳細:', JSON.stringify(JSON.parse(err.body), null, 2));
+  process.exit(1);
+});

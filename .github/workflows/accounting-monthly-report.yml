@@ -51,12 +51,10 @@ jobs:
       - name: 月次レポートを生成
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_DB_MONTHLY_REPORT_ID: ${{ secrets.NOTION_DB_MONTHLY_REPORT_ID }}
           TAX_STATUS: ${{ secrets.TAX_STATUS }}
           TAX_METHOD: ${{ secrets.TAX_METHOD }}
           TAX_BUSINESS_CATEGORY: ${{ secrets.TAX_BUSINESS_CATEGORY }}
-        run: npm run monthly-report -- ${{ steps.target.outputs.yyyymm }} --notion
+        run: npm run monthly-report -- ${{ steps.target.outputs.yyyymm }}
 
       - name: サマリー表示
         run: |
