@@ -3,7 +3,7 @@ name: Sales - Morning Action Reminder
 on:
   schedule:
     # JST 09:00 = UTC 00:00
-    - cron: "0 0 * * *"
+    - cron: "15 0 * * *"
   workflow_dispatch:
 
 jobs:
