@@ -27,6 +27,11 @@ accounting/inputs/test-receipts-ocr/**
 sales/inputs/pipeline/**
 !sales/inputs/pipeline/.gitkeep
 
+# sales/leads 出力（機微情報: 実在店舗情報・個人経営店への問い合わせ下書き）
+# ※ sales/.gitignore にも outputs/ 除外あり（二重の保険）
+sales/outputs/leads/**
+!sales/outputs/leads/**/.gitkeep
+
 # accounting (機微情報: 顧客名・金額・口座番号などを含む)
 # inputs: 機微データを含む入力ファイル
 accounting/inputs/invoices/*.md
