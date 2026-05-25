@@ -3,7 +3,7 @@ name: X 日次自動投稿
 on:
   schedule:
     # 月〜金 3:00 UTC = 12:00 JST
-    - cron: "0 3 * * 1-5"
+    - cron: "0 2 * * 1-5"
   workflow_dispatch:
 
 jobs:
