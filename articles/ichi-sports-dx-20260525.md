@@ -1,178 +1,178 @@
 ---
-title: "フットサル×スポーツDXで変わる競技体験：センサー・AI・クラウドで実現するスマートコート"
+title: "フットサル×スポーツDX：データ駆動で変わる戦術分析とチーム運営の未来"
 emoji: "⚽"
 type: "tech"
-topics: ["SportsTech","IoT","フットサル"]
+topics: ["SportsTech","IoT","MachineLearning"]
 published: true
 ---
 
-スポーツの現場にテクノロジーが入り込む速度が、ここ数年で一気に加速しています。私がフットサルチームの練習データ管理を手伝うようになったのをきっかけに、センサー・AI・クラウドを組み合わせた「スマートコート」の構築に取り組みました。この記事では、その実装で得た知見を技術的に整理してお伝えします。
+スポーツの世界でも「DX（デジタルトランスフォーメーション）」の波が押し寄せています。私が趣味でフットサルチームのコーチをしていることもあり、最近は試合データの収集・分析に本格的に取り組み始めました。この記事では、フットサルを題材にしながら、スポーツDXの具体的な実装方法と、データ駆動で変わるチーム運営の可能性についてお伝えします。
 
-## スマートコートのアーキテクチャ全体像
+## なぜフットサルにデータ分析が有効なのか
 
-フットサルは5対5・屋内・狭いピッチという特性上、データ密度が非常に高くなります。センサーから収集した生データをリアルタイムで処理し、コーチや選手にフィードバックするまでの流れを整理すると、次のような3層構造になります。
+フットサルはサッカーと比べてコートが狭く、5人対5人という少人数制です。この特性が実はデータ分析との相性を非常に良くしています。
 
-```
-[Edge Layer]
-  センサー（UWB測位 / IMU / 圧力センサー）
-  ↓ MQTT / BLE
-[Fog Layer]
-  エッジコンピュータ（Jetson Nano）
-  リアルタイム前処理・フィルタリング
-  ↓ WebSocket / gRPC
-[Cloud Layer]
-  時系列DB（InfluxDB） + 分析基盤（Python / FastAPI）
-  ダッシュボード（Grafana / React）
-```
+- **プレーの濃密さ**：狭いコートで短時間に多くのプレーが発生する
+- **少人数制**：各選手の貢献度が可視化しやすい
+- **戦術の切り替えが明確**：プレスの発動・解除などの判断ポイントが多い
 
-UWB（Ultra-Wideband）タグを選手のビブスに縫い付け、コート四隅に固定したアンカーで測位精度±10cm程度を実現しています。IMUセンサーはボールに内蔵し、回転数・加速度を取得します。
+従来はコーチの経験や勘に頼っていた部分を、データで裏付けることで、選手へのフィードバックの質が格段に上がりました。
 
-## センサーデータの収集と前処理
+## データ収集の基本設計
 
-エッジ側ではMQTTブローカー（Mosquitto）を立て、各センサーからのデータを集約します。以下はJetson Nano上で動くPythonの簡略版サンプルです。
+まずはデータの収集基盤を作ることが出発点です。私のチームでは、試合動画をもとに手動でイベントデータを入力するシンプルな方法からスタートしました。
+
+### イベントデータの構造設計
+
+各プレーを「イベント」として記録します。以下はPythonのdataclassを使ったイベントモデルの例です。
 
 ```python
-import paho.mqtt.client as mqtt
-import json
-import numpy as np
-from dataclasses import dataclass, asdict
-from typing import Optional
-import time
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional, Literal
+
+EventType = Literal[
+    "shot", "goal", "assist", "turnover",
+    "interception", "foul", "save"
+]
 
 @dataclass
-class PlayerPosition:
+class FutsalEvent:
+    event_id: str
+    match_id: str
+    timestamp: float          # 試合開始からの秒数
     player_id: str
-    timestamp: float
-    x: float
-    y: float
-    z: float
-    speed: Optional[float] = None
-    acceleration: Optional[float] = None
+    team_id: str
+    event_type: EventType
+    x: float                  # コート上のX座標（0〜40m）
+    y: float                  # コート上のY座標（0〜20m）
+    success: bool = True
+    related_player_id: Optional[str] = None  # アシストや対象選手
+    notes: str = ""
 
-class PositionProcessor:
-    def __init__(self, window_size: int = 5):
-        self.window_size = window_size
-        self.history: dict[str, list[PlayerPosition]] = {}
-
-    def process(self, raw: dict) -> PlayerPosition:
-        pos = PlayerPosition(
-            player_id=raw["id"],
-            timestamp=raw["ts"],
-            x=raw["x"],
-            y=raw["y"],
-            z=raw["z"],
-        )
-        pid = pos.player_id
-        self.history.setdefault(pid, [])
-        self.history[pid].append(pos)
-
-        # 移動平均でノイズ除去
-        if len(self.history[pid]) >= 2:
-            prev = self.history[pid][-2]
-            dt = pos.timestamp - prev.timestamp
-            if dt > 0:
-                dist = np.sqrt((pos.x - prev.x)**2 + (pos.y - prev.y)**2)
-                pos.speed = dist / dt  # m/s
-
-        # ウィンドウサイズを超えたら古いデータを破棄
-        if len(self.history[pid]) > self.window_size:
-            self.history[pid].pop(0)
-
-        return pos
-
-processor = PositionProcessor()
-
-def on_message(client, userdata, msg):
-    raw = json.loads(msg.payload)
-    result = processor.process(raw)
-    # 次のレイヤーへ転送
-    client.publish("processed/position", json.dumps(asdict(result)))
-
-client = mqtt.Client()
-client.on_message = on_message
-client.connect("localhost", 1883)
-client.subscribe("raw/uwb/#")
-client.loop_forever()
+# 使用例
+event = FutsalEvent(
+    event_id="evt_001",
+    match_id="match_2024_01",
+    timestamp=342.5,
+    player_id="player_07",
+    team_id="team_ichi",
+    event_type="shot",
+    x=28.3,
+    y=10.1,
+    success=False,
+    notes="GKの正面、右足シュート"
+)
 ```
 
-移動平均によるノイズ除去はシンプルですが、フットサルのような急加速・急停止が頻発する競技では、カルマンフィルタへの置き換えも検討に値します。実際に私のチームではカルマンフィルタ適用後、速度推定の誤差が約30%改善しました。
+このようにイベントを構造化しておくことで、後からPandasやSQLで集計・フィルタリングが簡単になります。データ設計の段階で「何を分析したいか」を明確にしておくことが、後の分析の質を大きく左右します。
 
-## AIによるプレー分析：ヒートマップとパターン検出
+### データ蓄積にSQLiteを活用する
 
-クラウド側ではInfluxDBに蓄積した位置データを使い、Pythonで分析パイプラインを構築しています。特に実用的だったのが、**ヒートマップ生成**と**プレッシングパターンの検出**です。
-
-### ヒートマップ生成
+小規模チームなら、クラウドDBを使わずともSQLiteで十分です。
 
 ```python
-import numpy as np
-import matplotlib.pyplot as plt
-from influxdb_client import InfluxDBClient
+import sqlite3
+import json
+from dataclasses import asdict
 
-COURT_W, COURT_H = 40.0, 20.0  # フットサルコート標準サイズ (m)
-GRID_SIZE = 0.5  # 50cmグリッド
+def save_event(db_path: str, event: FutsalEvent) -> None:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
 
-def fetch_positions(player_id: str, match_id: str, client: InfluxDBClient):
-    query_api = client.query_api()
-    query = f'''
-    from(bucket: "futsal")
-      |> range(start: -30d)
-      |> filter(fn: (r) => r["player_id"] == "{player_id}")
-      |> filter(fn: (r) => r["match_id"] == "{match_id}")
-      |> filter(fn: (r) => r["_field"] == "x" or r["_field"] == "y")
-      |> pivot(rowKey:["_time"], columnKey:["_field"], valueColumn:"_value")
-    '''
-    tables = query_api.query(query)
-    positions = [(row["x"], row["y"]) for table in tables for row in table.records]
-    return positions
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            event_id TEXT PRIMARY KEY,
+            match_id TEXT,
+            timestamp REAL,
+            player_id TEXT,
+            team_id TEXT,
+            event_type TEXT,
+            x REAL,
+            y REAL,
+            success INTEGER,
+            related_player_id TEXT,
+            notes TEXT
+        )
+    """)
 
-def generate_heatmap(positions: list[tuple[float, float]]) -> np.ndarray:
-    cols = int(COURT_W / GRID_SIZE)
-    rows = int(COURT_H / GRID_SIZE)
-    grid = np.zeros((rows, cols))
+    data = asdict(event)
+    data["success"] = int(data["success"])  # boolをintに変換
 
-    for x, y in positions:
-        col = min(int(x / GRID_SIZE), cols - 1)
-        row = min(int(y / GRID_SIZE), rows - 1)
-        grid[row, col] += 1
+    cursor.execute("""
+        INSERT OR REPLACE INTO events VALUES (
+            :event_id, :match_id, :timestamp, :player_id,
+            :team_id, :event_type, :x, :y, :success,
+            :related_player_id, :notes
+        )
+    """, data)
 
-    # ガウシアンスムージング
-    from scipy.ndimage import gaussian_filter
-    grid = gaussian_filter(grid, sigma=1.5)
-    return grid
+    conn.commit()
+    conn.close()
 
-def plot_heatmap(grid: np.ndarray, player_id: str):
-    fig, ax = plt.subplots(figsize=(12, 6))
-    im = ax.imshow(grid, cmap="hot", origin="lower",
-                   extent=[0, COURT_W, 0, COURT_H], aspect="equal")
-    plt.colorbar(im, ax=ax, label="滞在時間（相対）")
-    ax.set_title(f"選手 {player_id} ヒートマップ")
-    ax.set_xlabel("コート横軸 (m)")
-    ax.set_ylabel("コート縦軸 (m)")
-    plt.tight_layout()
-    plt.savefig(f"heatmap_{player_id}.png", dpi=150)
+def get_player_stats(db_path: str, player_id: str) -> dict:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            event_type,
+            COUNT(*) as total,
+            SUM(success) as successful
+        FROM events
+        WHERE player_id = ?
+        GROUP BY event_type
+    """, (player_id,))
+
+    stats = {
+        row[0]: {"total": row[1], "successful": row[2]}
+        for row in cursor.fetchall()
+    }
+    conn.close()
+    return stats
 ```
 
-このヒートマップを試合ごとに自動生成し、Slackに投稿するワークフローを組んでいます。コーチは翌朝には前日の試合レポートを確認できるため、練習計画の修正サイクルが大幅に短縮されました。
+このシンプルな実装だけでも、選手ごとのシュート成功率・ターンオーバー数・インターセプト数などの基本スタッツをすぐに集計できます。
 
-### プレッシングパターンの検出
+## 戦術分析への応用：ヒートマップとゾーン分析
 
-5人の選手間距離の平均値が閾値を下回り、かつ全員の速度が一定以上であるフレームを「プレッシング局面」として自動タグ付けします。このラベルを教師データとして、LSTMベースの時系列分類モデルを訓練することで、試合映像との同期なしに戦術分析が可能になりました。
+データが蓄積されてくると、いよいよ戦術的なインサイトを引き出す段階に入ります。私が特に活用しているのが**ヒートマップ**と**ゾーン別分析**です。
 
-## クラウドとダッシュボードによる可視化・共有
+### シュートゾーンの可視化
 
-InfluxDB + GrafanaのスタックはスポーツDXに非常に相性が良いです。Grafanaのアノテーション機能を使えば、「この時間帯にゴールが入った」「ファウルがあった」といったイベントをタイムライン上に重ねて表示できます。
+MatplotlibとSeabornを使えば、どのエリアからシュートが多いか、また成功率が高いかを視覚化できます。コートを6つのゾーンに分割し、ゾーン別のシュート成功率を見ることで、「自チームはどのエリアからの得点が多いか」「相手チームのウィークポイントはどこか」が明確になります。
 
-FastAPIでREST APIを立て、Reactで構築したコーチ向けダッシュボードからも参照できるようにしています。認証にはFirebase Authenticationを採用し、チームごとにデータを分離。選手自身もスマホから自分のスタッツを確認できる仕組みにしています。
+分析の結果、私のチームでは左サイドからの折り返しによる中央シュートの成功率が他ゾーンの2倍以上あることが判明しました。これをもとに、練習メニューに左サイドからの崩しパターンを増やしたところ、直近3試合での得点数が向上しました。感覚的に「左サイドが得意」とは思っていましたが、数字で確認できると選手全員への説明も説得力が増します。
 
-データの鮮度については、試合中はWebSocketでリアルタイム更新、練習後は5分間隔のバッチ処理という使い分けで、インフラコストと体験品質のバランスを取っています。
+### 選手の体力マネジメントへの活用
+
+フットサルは運動強度が非常に高く、選手の疲労管理が重要です。タイムスタンプデータを活用すると、「試合後半のターンオーバー増加」や「特定選手の後半パフォーマンス低下」を客観的に捉えられます。これにより、選手交代のタイミングや練習負荷の調整に根拠が生まれます。
+
+## チーム運営をDXで変える：データの民主化
+
+技術的な実装と同じくらい大切なのが、**データをチーム全体で活用できる文化づくり**です。
+
+分析結果をコーチだけが抱え込んでも意味がありません。私のチームでは以下の取り組みをしています。
+
+- **週次スタッツレポートのSlack配信**：Pythonスクリプトで自動生成し、選手全員が自分のデータを確認できる
+- **選手自身によるメモ入力**：試合後に各自がプレーのコンテキストをメモし、定性データとして蓄積
+- **目標設定のデータ連動**：「今月のシュート成功率を60%以上にする」など、データと連動した個人目標を設定
+
+重要なのは「データで選手を評価・批判する」のではなく、「データを使って選手が自分自身を改善する」という文化です。数字は対話のきっかけであり、目的ではありません。
+
+また、スモールスタートも大切です。最初から完璧なシステムを目指す必要はありません。Googleスプレッドシートで手入力するところから始め、慣れてきたらPythonで自動化する、というステップアップが現実的です。
 
 ## まとめ
 
-フットサル×スポーツDXの取り組みを通じて、以下の点が実感できました。
+フットサルとスポーツDXの取り組みを通じて、私が学んだことをまとめます。
 
-- **UWB測位**は屋内スポーツの位置追跡に現時点で最も実用的な選択肢
-- **エッジでの前処理**をしっかり設計することがクラウドコスト削減と低遅延の両立に直結する
-- **InfluxDB + Grafana**の組み合わせは時系列スポーツデータと親和性が高く、プロトタイプを素早く立ち上げられる
-- ヒートマップや戦術パターン検出といった**AIの出力を現場の言葉に翻訳する**ことが、コーチ・選手への浸透のカギ
+| フェーズ | やること | 使う技術 |
+|---|---|---|
+| 収集 | イベントデータの構造設計・入力 | Python dataclass, SQLite |
+| 蓄積 | 試合・選手データの管理 | SQLite, Pandas |
+| 分析 | ヒートマップ・スタッツ集計 | Matplotlib, Seaborn |
+| 運用 | チームへのフィードバック | Slack API, スプレッドシート |
 
-センサーやAIはあくまで手段です。「コーチが何を知りたいか」「選手がどう動けばチームが強くなるか」という問いを起点に技術を選定することで、データが実際のプレー改善につながります。スポーツDXはまだ発展途上の領域なので、ぜひ皆さんの現場でも試してみてください。
+スポーツDXは「大きなチームや企業だけのもの」ではありません。趣味のフットサルチームでも、データを活用することで戦術の精度と選手の成長速度は確実に上がります。技術的なハードルも、今回紹介したPythonとSQLiteのレベルであれば、エンジニアなら気軽に始められるはずです。
+
+まずは1試合分のデータを記録することから始めてみてください。数字の中に、きっとこれまで見えていなかった「勝利のヒント」が隠れています。
