@@ -46,6 +46,14 @@ function parsePosts(markdown) {
 }
 
 async function main() {
+  const today = new Date().toISOString().split("T")[0];
+  const postedTodayFile = path.join(__dirname, "..", "drafts", `${today}.posted_today`);
+
+  if (fs.existsSync(postedTodayFile)) {
+    console.log(`✅ 本日(${today})はすでに投稿済みです。スキップします。`);
+    process.exit(0);
+  }
+
   const client = createClient();
   const { draftPath, statePath } = findLatestDraft();
 
@@ -75,6 +83,9 @@ async function main() {
 
   state.posted.push(nextIndex);
   fs.writeFileSync(statePath, JSON.stringify(state, null, 2), "utf-8");
+
+  fs.writeFileSync(postedTodayFile, new Date().toISOString());
+  console.log(`✅ フラグ作成: ${today}.posted_today`);
 
   const remaining = posts.length - state.posted.length;
   console.log(`\n✅ 投稿完了 (残り ${remaining} 本)\n`);
